@@ -1231,6 +1231,10 @@ export type Item = {
   variant: Variant;
   supporting?: string;
   shadcnProps?: ShadcnProps;
+  /** UI-Builder ComponentLayer for hierarchical shadcn components */
+  layer?: import("./registry/types").ComponentLayer;
+  /** Multi-mode rendering for Viewport Modals (Dialog): edit vs preview */
+  renderMode?: "edit" | "preview";
   size?: number;
   radiusTop?: number;
   radiusBottom?: number;
@@ -1713,6 +1717,8 @@ export const defaultPlatformOf = (frames: Frame[], mode: FrameMode): Platform =>
 export type Doc = {
   groups: Group[];
   frames: Frame[];
+  /** Spatial canvas nodes with hierarchical component layers */
+  nodes?: import("./registry/types").CanvasNode[];
   paletteKey: string;
   /** the author's own scheme, used when paletteKey is "custom" */
   customPalette?: Palette;
