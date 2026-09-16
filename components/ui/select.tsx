@@ -5,6 +5,7 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { useCanvasZoom } from "@/lib/canvas-context"
 
 const Select = SelectPrimitive.Root
 
@@ -76,7 +77,15 @@ export interface SelectContentProps
 const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   SelectContentProps
->(({ className, children, position = "popper", container, usePortal = true, ...props }, ref) => {
+>(({ className, children, position = "popper", container, usePortal = true, style, ...props }, ref) => {
+  const zoom = useCanvasZoom();
+
+  const canvasZoomStyle: React.CSSProperties = zoom !== 1 ? {
+    transform: `scale(${zoom})`,
+    transformOrigin: "top left",
+    minWidth: `calc(var(--radix-select-trigger-width) / ${zoom})`,
+  } : {};
+
   const content = (
     <SelectPrimitive.Content
       ref={ref}
@@ -87,6 +96,10 @@ const SelectContent = React.forwardRef<
         className
       )}
       position={position}
+      style={{
+        ...canvasZoomStyle,
+        ...style,
+      }}
       {...props}
     >
       <SelectScrollUpButton />

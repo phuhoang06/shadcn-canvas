@@ -11,6 +11,7 @@ import {
 import { AnimatePresence, motion, useReducedMotion, useSpring } from "motion/react";
 import { toPng } from "html-to-image";
 import { buildPrompt, effectivePrompt } from "@/lib/prompt";
+import { CanvasProvider } from "@/lib/canvas-context";
 import {
   Action,
   actionsOf,
@@ -399,6 +400,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
     if (revealTimer.current) clearTimeout(revealTimer.current);
   }, []);
   const guideRef = useRef<string | null>(null);
+  const canvasTransformRef = useRef<HTMLDivElement>(null);
 
   /* ---------- editor ui ---------- */
   const [view, setView] = useState<View>({ x: 0, y: 0, z: 1 });
@@ -859,6 +861,11 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
       z,
     });
   }, []);
+
+  useEffect(() => {
+    (window as any).__setZoom = setZoomAt;
+    (window as any).__setView = setView;
+  }, [setZoomAt]);
 
   const fit = useCallback(() => {
     const r = canvasRect();
@@ -3240,6 +3247,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
   return (
     <LangContext.Provider value={lang}>
     <ThemeContext.Provider value={theme}>
+    <CanvasProvider value={{ zoom: view.z, isCanvas: true }}>
       <div
         className={revealing ? "app-root m3e-reveal" : "app-root"}
         /* the preview sits outside this tree and owns the keyboard while it is up */
@@ -3560,6 +3568,8 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
             }}
           >
             <div
+              ref={canvasTransformRef}
+              id="canvas-transformed-viewport"
               style={{
                 position: "absolute",
                 left: 0,
@@ -4227,6 +4237,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
             </div>
         </div>
       )}
+    </CanvasProvider>
     </ThemeContext.Provider>
     </LangContext.Provider>
   );
