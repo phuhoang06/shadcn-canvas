@@ -1,87 +1,51 @@
-# Design Spec: shadcn-canvas Phase 1 (POC - Button, Card & Select)
+# Design Spec: shadcn-canvas Phase 1 (POC - Litmus Test First)
 
 **Date:** 2026-09-16  
-**Status:** Calibrated & Approved  
-**Approach:** Option A - Adapter Layer with Portal Isolation Testing
+**Status:** Approved & Prioritized (Fail-Fast)  
+**Strategy:** Portal Litmus Test first (Task 2) before investing in Button/Card
 
 ---
 
-## 1. Executive Summary & Critical Technical Questions
+## 1. Core Technical Risk: Portal Positioning & Scaling under Canvas Transform
 
-The objective of Phase 1 is a high-risk-first **Proof of Concept (POC)** that stress-tests the architectural friction between `m3e-canvas` (infinite canvas with CSS transform zoom/pan) and `shadcn/ui` (Tailwind CSS + Radix UI with floating portals).
-
-### 1.1 The Core Deal-Breaker: Portal Positioning under Canvas Zoom/Pan
-In `m3e-canvas`, the canvas viewport relies on CSS transforms:
-```css
-transform: translate(${view.x}px, ${view.y}px) scale(${view.z});
-transform-origin: 0 0;
-```
-Components like Radix `Select`, `Popover`, `Dialog`, and `DropdownMenu` mount their overlay via React Portal into `document.body` by default. Under a CSS-transformed ancestor:
-1. `getBoundingClientRect()` calculation in `@floating-ui/react-dom` / Radix Popper uses raw viewport coordinates, leading to **misaligned dropdowns** when `view.z !== 1.0` (e.g. zoom at 50% or 150%).
-2. Portaling to `document.body` renders the dropdown at **100% scale**, creating a jarring visual bug where the canvas button is tiny (50% zoom) but the opened menu is massive (100%).
-3. Panning the canvas (`view.x`, `view.y`) while a dropdown is open detaches the floating content from the trigger.
-
-### 1.2 The 3 Target Components for Phase 1
-- **`Button` (Atomic):** Tests basic Tailwind rendering, sizing variants (`sm`, `default`, `lg`), and the interaction conflict between **canvas node drag/select** vs **child button click**.
-- **`Card` (Compound):** Tests structured container layout (`CardHeader`, `CardTitle`, `CardContent`), nested text wrapping, and width/height preset snapping.
-- **`Select` (Portal-based Floating Primitive):** **The primary litmus test.** Tests whether Radix Portal can be contained within the canvas zoom container (`<Select.Portal container={canvasRef.current}>`) or if a non-portal / inline mode is necessary.
-
----
-
-## 2. Go / No-Go Decision Gate
-
-At the end of Phase 1, we execute the **Portal & Zoom Stress Test**:
-- Open `Select` at **zoom = 100%**, **zoom = 50%**, and **zoom = 150%**.
-- Open `Select` after panning canvas coordinates `(x: 200, y: -150)`.
-
-| Outcome | Assessment | Next Step |
-| :--- | :--- | :--- |
-| **Pass (Green)** | `Select` content scales synchronously with `view.z` and aligns accurately to trigger. | Proceed directly to Phase 2 (Data Model & Registry). |
-| **Fixable (Yellow)** | Default `document.body` portal breaks, but passing canvas frame ref as `container` or using inline content fixes it cleanly. | Document the adapter pattern for all future portal components, then proceed. |
-| **Blocker (Red)** | Floating UI completely breaks under CSS transform with no viable container solution. | **STOP.** Do not proceed to Phase 2. Re-architect the canvas zoom engine (e.g. iframe isolation or SVG container) before touching data models. |
-
----
-
-## 3. High-Level Roadmap & Effort Weighting
-
-| Phase | Description | Effort Weight | Core Strategy |
-| :--- | :--- | :---: | :--- |
-| **Giai đoạn 1: POC (Hiện tại)** | Test 3 components (`Button`, `Card`, `Select`) + minimal TSX codegen. | 🟢 **Medium** | Focus on the Portal/Transform collision and interaction gating. |
-| **Giai đoạn 2: Architecture & Registry** | Chuẩn hóa Data Model & Tích hợp Registry. | 🔴 **High (Nặng nhất)** | **Tái sử dụng & điều chỉnh** Registry (`shadcn-component-definitions.ts`) và Template Serializer của `ui-builder`, gắn thêm tọa độ x/y tự do của canvas thay vì viết mới từ 0. |
-| **Giai đoạn 3: Component Library & Prototyping** | Port 30+ components, Multi-screen wiring, Interactive Preview. | 🟡 **Medium-High** | Lắp ráp theo khuôn mẫu đã chuẩn hóa từ Giai đoạn 2. |
-| **Giai đoạn 4: Export Engine & Tooling** | Xuất dự án Next.js hoàn chỉnh & AI Vibe-coding prompts. | 🟢 **Low-Medium** | Hoàn thiện UX tải file zip / copy prompt. |
-
----
-
-## 4. Technical Architecture for Phase 1
-
-### 4.1 Data Model (`lib/tokens.ts`)
-```typescript
-export type ShadcnButtonProps = {
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
-  size?: "default" | "sm" | "lg";
-  label?: string;
-};
-
-export type ShadcnCardProps = {
-  title: string;
-  description?: string;
-  content: string;
-};
-
-export type ShadcnSelectProps = {
-  placeholder?: string;
-  options: { label: string; value: string }[];
-  defaultValue?: string;
-};
-
-export type ShadcnKind = "shadcn_button" | "shadcn_card" | "shadcn_select";
+In `m3e-canvas`, canvas viewport transform is applied on an outer container:
+```tsx
+transform: `translate(${view.x}px, ${view.y}px) scale(${view.z})`,
+transformOrigin: "0 0",
 ```
 
-### 4.2 Handling Click Conflict on Canvas
-In edit mode:
-- All child interactive elements (Button, Select trigger) operate under an event-capturing overlay or `pointer-events: none` on the inner component, ensuring clicks select/drag the node.
-- Double-clicking or an explicit "Interact / Test" mode enables real clicks to test the Select dropdown and Button states.
+Radix UI components using Floating UI / Popper (`Select`, `Popover`, `Dialog`) default to mounting via `createPortal` to `document.body`. Under this CSS transform, two distinct failure modes occur:
+1. **Lệch tọa độ định vị (Position Misalignment):** `getBoundingClientRect()` inside a scaled coordinate system can cause Floating UI to miscalculate trigger offsets when `view.z !== 1.0` or when panned.
+2. **Lệch tỷ lệ kích thước (Visual Scale Mismatch):** If a dropdown mounts to `document.body`, its font sizes, padding, and dimensions remain at 100% scale while the canvas shrinks to 50% or expands to 150%. The dropdown must scale synchronously with the canvas camera.
 
-### 4.3 Code Generation (`lib/codegen.ts`)
-Generates clean React TSX including proper imports from `@/components/ui/button`, `@/components/ui/card`, and `@/components/ui/select`.
+### Two Independent Exit Criteria for Portal Test:
+- **Tiêu chí (a) - Tọa độ định vị:** Dropdown dính sát mép trigger, không bị lệch x/y dù ở zoom 50%, 100%, 150% hay sau khi pan.
+- **Tiêu chí (b) - Tỷ lệ hiển thị:** Toàn bộ nội dung dropdown (font size, padding, border) co giãn đồng bộ đúng tỷ lệ của canvas (`scale(view.z)`).
+
+---
+
+## 2. Fail-Fast Order & Early Go / No-Go Gate
+
+The task sequence is reordered so the highest-risk experiment runs **immediately after scaffolding**:
+
+```mermaid
+flowchart TD
+    T1["Task 1: Scaffolding Baseline & Legal Attribution"] --> T2["Task 2: Portal Litmus Test (Select at 50%, 100%, 150% & Pan)"]
+    T2 --> GATE{"Go / No-Go Gate"}
+    GATE -- "No-Go (Unfixable Scale/Pos)" --> REARCH["Dừng lại: Đánh giá lại cơ chế Zoom Canvas (iframe/SVG)"]
+    GATE -- "Go (Pass or Clean Container Fix)" --> T3["Task 3: Port Button & Card + Click vs Drag Gating"]
+    T3 --> T4["Task 4: Data Model & ShadcnNode Adapter"]
+    T4 --> T5["Task 5: Inspector Controls for All 3"]
+    T5 --> T6["Task 6: TSX Codegen & Export Modal"]
+```
+
+### Decision Matrix at Task 2:
+- **GO:** Select dropdown mounts cleanly inside canvas container, positioning and visual scale match zoom levels. Proceed to Task 3.
+- **NO-GO:** Dropdown cannot be correctly positioned or scaled within the transformed canvas container. **STOP immediately**. Re-evaluate canvas architecture before writing any adapter or data model code.
+
+---
+
+## 3. Hybrid Execution Plan
+
+- **Task 1 & Task 2:** **Inline Execution** (Trực tiếp quan sát trực quan hiện tượng lệch pixel, lệch scale trên trình duyệt ở 50%, 100%, 150% zoom).
+- **Task 3 ➔ Task 6:** **Subagent-Driven** (Giao subagent thực thi tuần tự các tác vụ cơ học: styling, props wiring, codegen string templates).

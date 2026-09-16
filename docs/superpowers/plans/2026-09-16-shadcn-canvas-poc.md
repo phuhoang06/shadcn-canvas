@@ -1,28 +1,30 @@
-# Shadcn Canvas POC (Button, Card & Select) Implementation Plan
+# Shadcn Canvas POC (Fail-Fast Priority) Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (for Task 3-6) or inline execution (for Task 1-2). Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Proof-of-Concept for `shadcn-canvas` integrating 3 representative components (`Button` - atomic, `Card` - compound, and `Select` - portal-based floating primitive) to definitively answer whether Radix portals work under canvas zoom/pan CSS transforms, resolve click-vs-drag interaction conflicts, and establish minimal TSX code generation.
+**Goal:** Build a Proof-of-Concept testing whether Radix UI portal-based components (`Select`) can scale and align correctly under canvas CSS transform zoom/pan, before implementing `Button`, `Card`, and TSX code generation.
 
-**Architecture:** Option A (Adapter Layer) — Keep the `m3e-canvas` zoom/pan engine. Extend `Item` with `shadcnProps`. Delegate rendering to `ShadcnNode`. For portal-based components (`Select`), test mounting via `<Select.Portal container={...}>` into the transformed canvas frame vs `document.body`. Provide a Go/No-Go decision gate based on zoom test results.
+**Architecture:** Option A (Adapter Layer). Task 2 is an **Early Go/No-Go Litmus Test** executed inline to visually confirm:
+- **Tiêu chí (a) Tọa độ định vị:** Dropdown bám sát trigger, không lệch x/y ở zoom 50%, 100%, 150% và pan.
+- **Tiêu chí (b) Tỷ lệ hiển thị:** Dropdown co giãn kích thước font/padding đồng bộ theo zoom canvas.
 
-**Tech Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Radix UI (`@radix-ui/react-slot`, `@radix-ui/react-select`), `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `motion` (v13).
+**Tech Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS, Radix UI (`@radix-ui/react-select`, `@radix-ui/react-slot`), `class-variance-authority`, `clsx`, `tailwind-merge`, `motion` (v13).
 
 ## Global Constraints
-- Do not modify core canvas geometry math in `lib/tokens.ts`.
-- Retain Google attribution in `NOTICE` for `material-components-android`.
-- All generated code must be clean, valid TSX matching standard shadcn/ui syntax.
-- Zero temporary script files in project folders.
+- Preserve Google attribution in `NOTICE`.
+- Run Task 1 and Task 2 inline in this session to visually observe portal behavior.
+- Stop at Task 2 Go/No-Go gate before proceeding to Task 3.
 
 ---
 
-### Task 1: Baseline Scaffolding & Legal Attribution
+### Task 1: Baseline Scaffolding & Legal Attribution (Inline)
 
 **Files:**
 - Create: `NOTICE`
 - Copy: `app/*`, `components/*`, `lib/*`, `public/*` from `reference/m3e-canvas/`
+- Create: `lib/utils.ts`
 - Modify: `package.json`, `app/globals.css`
-- Test: `npm run typecheck`
+- Test: `npx tsc --noEmit`
 
 - [ ] **Step 1: Copy Google NOTICE file**
 ```bash
@@ -37,36 +39,7 @@ cp -r /home/hp/Desktop/shadcn-canvas/reference/m3e-canvas/lib /home/hp/Desktop/s
 cp -r /home/hp/Desktop/shadcn-canvas/reference/m3e-canvas/public /home/hp/Desktop/shadcn-canvas/
 ```
 
-- [ ] **Step 3: Install dependencies**
-```bash
-cd /home/hp/Desktop/shadcn-canvas && npm install
-```
-
-- [ ] **Step 4: Configure Tailwind CSS variables for shadcn in `app/globals.css`**
-Add HSL color variables (`--background`, `--foreground`, `--primary`, `--secondary`, `--card`, `--popover`, etc.) to `app/globals.css`.
-
-- [ ] **Step 5: Verify baseline compiles**
-Run: `npx tsc --noEmit`
-Expected: 0 type errors.
-
-- [ ] **Step 6: Commit**
-```bash
-git add NOTICE app/ components/ lib/ public/ package.json package-lock.json
-git commit -m "chore: scaffold baseline canvas from m3e-canvas with attribution"
-```
-
----
-
-### Task 2: Port shadcn/ui Primitives (`Button`, `Card`, `Select`)
-
-**Files:**
-- Create: `lib/utils.ts`
-- Create: `components/ui/button.tsx`
-- Create: `components/ui/card.tsx`
-- Create: `components/ui/select.tsx`
-- Test: `npx tsc --noEmit`
-
-- [ ] **Step 1: Create `lib/utils.ts`**
+- [ ] **Step 3: Create `lib/utils.ts` (cn helper)**
 ```typescript
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -76,28 +49,74 @@ export function cn(...inputs: ClassValue[]) {
 }
 ```
 
-- [ ] **Step 2: Port `components/ui/button.tsx` from ui-builder**
-Copy `reference/ui-builder/components/ui/button.tsx` to `components/ui/button.tsx`.
-
-- [ ] **Step 3: Port `components/ui/card.tsx` from ui-builder**
-Copy `reference/ui-builder/components/ui/card.tsx` to `components/ui/card.tsx`.
-
-- [ ] **Step 4: Port `components/ui/select.tsx` from ui-builder**
-Copy and adapt `reference/ui-builder/components/ui/select.tsx` to `components/ui/select.tsx`. Ensure `SelectContent` exposes a configurable `container` or can attach to parent context.
-
-- [ ] **Step 5: Typecheck verification**
-Run: `npx tsc --noEmit`
-Expected: PASS with 0 errors.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 4: Install dependencies in root project**
 ```bash
-git add lib/utils.ts components/ui/button.tsx components/ui/card.tsx components/ui/select.tsx
-git commit -m "feat(ui): add shadcn button, card, and select primitives"
+cd /home/hp/Desktop/shadcn-canvas && npm install
+```
+
+- [ ] **Step 5: Configure shadcn HSL CSS variables in `app/globals.css`**
+Merge shadcn theme variables with M3E global styling.
+
+- [ ] **Step 6: Verify baseline compiles cleanly**
+Run: `npx tsc --noEmit`
+Expected: 0 errors.
+
+- [ ] **Step 7: Commit**
+```bash
+git add NOTICE app/ components/ lib/ public/ package.json package-lock.json
+git commit -m "chore: scaffold baseline canvas with attribution and utils"
 ```
 
 ---
 
-### Task 3: Data Model Extension & `ShadcnNode` with Portal Support
+### Task 2: Portal & Zoom Litmus Test (Early Go / No-Go Gate) (Inline)
+
+**Files:**
+- Create: `components/ui/select.tsx`
+- Modify: `app/Editor.tsx` (mount test Select on Frame 1)
+- Test: Visual verification on `http://localhost:3000` at 50%, 100%, 150% zoom and pan
+
+- [ ] **Step 1: Port `components/ui/select.tsx` from ui-builder**
+Port standard Radix Select. Ensure `SelectContent` exposes `container` prop so it can attach to canvas frame ref or `document.body`.
+
+- [ ] **Step 2: Mount test Select inside Frame 1 on canvas**
+Place a test `<Select>` inside the active canvas frame in `app/Editor.tsx`.
+
+- [ ] **Step 3: Start dev server**
+Run: `npm run dev`
+
+- [ ] **Step 4: Execute Stress Test across zoom levels**
+1. Test default: `Select` with portal to `document.body` vs `Select` with portal to canvas container (`container={frameRef.current}`).
+2. Measure:
+   - **Tiêu chí (a) Tọa độ định vị:** Có dính sát trigger hay lệch x/y khi zoom 50%, 100%, 150% và pan không?
+   - **Tiêu chí (b) Tỷ lệ hiển thị:** Dropdown có scale nhỏ lại 50% hoặc to lên 150% theo camera canvas không?
+
+- [ ] **Step 5: Formal Go / No-Go Decision Checkpoint**
+Report visual findings. If PASS / fixable with container ref ➔ Mark GO to Task 3. If FAIL ➔ STOP to re-architect zoom mechanism.
+
+- [ ] **Step 6: Commit**
+```bash
+git add components/ui/select.tsx app/Editor.tsx
+git commit -m "test(canvas): verify Radix Select portal behavior under canvas zoom and pan"
+```
+
+---
+
+### Task 3: Port Button & Card + Click vs Drag Interaction (Subagent)
+
+**Files:**
+- Create: `components/ui/button.tsx`
+- Create: `components/ui/card.tsx`
+- Modify: `components/ui/button.tsx` (support edit-mode pointer-events gating)
+
+- [ ] **Step 1: Port `button.tsx` and `card.tsx`**
+- [ ] **Step 2: Add interaction gating (click-to-select vs click-to-activate)**
+- [ ] **Step 3: Verify build**
+- [ ] **Step 4: Commit**
+
+---
+
+### Task 4: Data Model Extension & `ShadcnNode` Adapter (Subagent)
 
 **Files:**
 - Modify: `lib/tokens.ts`
@@ -105,114 +124,33 @@ git commit -m "feat(ui): add shadcn button, card, and select primitives"
 - Modify: `components/M3Node.tsx`
 - Modify: `components/PartsPalette.tsx`
 
-- [ ] **Step 1: Extend `lib/tokens.ts`**
-Define `ShadcnButtonProps`, `ShadcnCardProps`, `ShadcnSelectProps`, and `ShadcnKind = "shadcn_button" | "shadcn_card" | "shadcn_select"`. Add `shadcnProps?: ShadcnButtonProps | ShadcnCardProps | ShadcnSelectProps` to `Item`.
-
-- [ ] **Step 2: Implement `components/nodes/ShadcnNode.tsx`**
-Implement adapter rendering for `Button`, `Card`, and `Select`.
-Address click vs drag conflict: in canvas edit mode, wrap the element with drag-selection handles or pass `interactive?: boolean`.
-
-- [ ] **Step 3: Integrate into `M3Node.tsx`**
-Delegate items with `kind.startsWith("shadcn_")` to `<ShadcnNode item={item} />`.
-
-- [ ] **Step 4: Add Button, Card, and Select to `components/PartsPalette.tsx`**
-Add draggable palette items under a new "shadcn/ui" category.
-
-- [ ] **Step 5: Verify build**
-Run: `npx tsc --noEmit`
-Expected: PASS with 0 errors.
-
-- [ ] **Step 6: Commit**
-```bash
-git add lib/tokens.ts components/nodes/ShadcnNode.tsx components/M3Node.tsx components/PartsPalette.tsx
-git commit -m "feat(canvas): add ShadcnNode adapter supporting button, card, and select"
-```
+- [ ] **Step 1: Extend `lib/tokens.ts` with `ShadcnButtonProps`, `ShadcnCardProps`, `ShadcnSelectProps`**
+- [ ] **Step 2: Create `components/nodes/ShadcnNode.tsx`**
+- [ ] **Step 3: Integrate into `M3Node.tsx` and `PartsPalette.tsx`**
+- [ ] **Step 4: Verify build and commit**
 
 ---
 
-### Task 4: Inspector Controls for All 3 Components
+### Task 5: Inspector Controls for All 3 Components (Subagent)
 
 **Files:**
 - Modify: `components/Inspector.tsx`
 
-- [ ] **Step 1: Add Button controls**
-Controls for variant (`default`, `outline`, `destructive`, `secondary`, `ghost`), size (`default`, `sm`, `lg`), and label.
-
-- [ ] **Step 2: Add Card controls**
-Controls for title, description, and content text.
-
-- [ ] **Step 3: Add Select controls**
-Controls for placeholder and options list (add/edit option label & value).
-
-- [ ] **Step 4: Verify build**
-Run: `npx tsc --noEmit`
-Expected: PASS with 0 errors.
-
-- [ ] **Step 5: Commit**
-```bash
-git add components/Inspector.tsx
-git commit -m "feat(inspector): add property controls for button, card, and select"
-```
+- [ ] **Step 1: Add controls for Button (variant, size, label)**
+- [ ] **Step 2: Add controls for Card (title, description, content)**
+- [ ] **Step 3: Add controls for Select (placeholder, options)**
+- [ ] **Step 4: Verify build and commit**
 
 ---
 
-### Task 5: React TSX Code Generator & Export Modal
+### Task 6: TSX Codegen & Export Modal (Subagent)
 
 **Files:**
 - Create: `lib/codegen.ts`
 - Create: `components/ExportTsxModal.tsx`
 - Modify: `components/Toolbar.tsx`
 
-- [ ] **Step 1: Implement `lib/codegen.ts`**
-Generate valid TSX with proper imports from `@/components/ui/button`, `@/components/ui/card`, and `@/components/ui/select`. Format clean JSX layout.
-
+- [ ] **Step 1: Implement `lib/codegen.ts` for Button, Card, and Select**
 - [ ] **Step 2: Implement `components/ExportTsxModal.tsx`**
-Display formatted TSX in a syntax block with a "Copy Code" button.
-
-- [ ] **Step 3: Add "Export TSX" button to `components/Toolbar.tsx`**
-Wire button to open the Export Modal for the active screen.
-
-- [ ] **Step 4: Verify build**
-Run: `npx tsc --noEmit`
-Expected: PASS with 0 errors.
-
-- [ ] **Step 5: Commit**
-```bash
-git add lib/codegen.ts components/ExportTsxModal.tsx components/Toolbar.tsx
-git commit -m "feat(codegen): implement TSX generator for button, card, and select"
-```
-
----
-
-### Task 6: The Portal & Zoom Stress Test & Go/No-Go Decision Gate
-
-**Files:**
-- Create: `docs/poc-evaluation-report.md`
-
-- [ ] **Step 1: Run dev server**
-```bash
-cd /home/hp/Desktop/shadcn-canvas && npm run dev
-```
-
-- [ ] **Step 2: Execute Portal & Zoom Stress Test**
-1. Add `Select` to a frame on the canvas.
-2. Test opening `Select` dropdown at:
-   - Zoom = 100%
-   - Zoom = 50%
-   - Zoom = 150%
-   - After panning canvas to (200px, -150px).
-3. Document whether dropdown misaligns or fails to scale with the canvas.
-4. If misaligned, test passing canvas frame container ref as `container` prop to `Select.Portal`.
-
-- [ ] **Step 3: Test Click vs Drag Selection on Button**
-Verify node selection vs button click behavior.
-
-- [ ] **Step 4: Formal Go / No-Go Decision Gate Report**
-Record findings in `docs/poc-evaluation-report.md`.
-Determine if Phase 2 can proceed or if canvas transform architecture requires adjustment.
-
-- [ ] **Step 5: Commit**
-```bash
-git add docs/poc-evaluation-report.md
-git commit -m "docs: complete Phase 1 POC stress test and evaluation report"
-```
+- [ ] **Step 3: Wire Export button in `components/Toolbar.tsx`**
+- [ ] **Step 4: Final verification report & commit**
