@@ -17,6 +17,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import type { Item, Palette } from "@/lib/tokens";
+import { HierarchicalNodeRenderer } from "@/components/renderers/HierarchicalNodeRenderer";
 
 export interface ShadcnNodeProps {
   item: Item;
@@ -25,6 +26,17 @@ export interface ShadcnNodeProps {
 }
 
 export function ShadcnNode({ item, palette: _palette, interactive }: ShadcnNodeProps) {
+  // Ưu tiên render Cây phân cấp ComponentLayer của Hybrid Model
+  if (item.layer) {
+    return (
+      <HierarchicalNodeRenderer
+        layer={item.layer}
+        interactive={interactive}
+        renderMode={item.renderMode ?? "edit"}
+      />
+    );
+  }
+
   switch (item.kind) {
     case "shadcnButton":
       return (

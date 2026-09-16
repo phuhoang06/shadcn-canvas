@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { SchemaInspector } from "./inspector/SchemaInspector";
 import {
   Action,
   BACK_TARGET,
@@ -916,7 +917,11 @@ export function Inspector({
 
       {onAlign && !editOn && <AlignSection single onAlign={onAlign} p={p} />}
 
-      {item.kind.startsWith("shadcn") && (
+      {item.layer && (
+        <SchemaInspector item={item} onChange={onChange} palette={p} />
+      )}
+
+      {!item.layer && item.kind.startsWith("shadcn") && (
         <Section id="shadcn" icon="tune" title="Shadcn Props" p={p}>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {item.kind === "shadcnButton" && (

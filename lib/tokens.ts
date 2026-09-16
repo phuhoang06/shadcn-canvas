@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { FAB_MENU_TABS, KIND_TEXT, Lang, NAV_TABS, TAB_LABELS, getLang, t, SELECT_OPTIONS } from "./i18n";
 import { Contrast, isLightColor, schemeFromSeed } from "./color";
+import { createDefaultLayer } from "./registry";
 
 /* ---------- geometry ---------- */
 export const H = 56; // M3 medium button height (dp)
@@ -479,7 +480,11 @@ export type Kind =
   | "badge"
   | "shadcnButton"
   | "shadcnCard"
-  | "shadcnSelect";
+  | "shadcnSelect"
+  | "shadcnDialog"
+  | "shadcnPopover"
+  | "shadcnBadge"
+  | "shadcnInput";
 
 export type ShadcnButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 export type ShadcnButtonSize = "default" | "sm" | "lg" | "icon";
@@ -1178,6 +1183,66 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     defLabel: "Select item",
     defIcon: null,
   },
+  shadcnDialog: {
+    label: "Shadcn Dialog",
+    noun: "Shadcnダイアログ",
+    category: "shadcn",
+    paletteIcon: "call_to_action",
+    w: 360,
+    h: 220,
+    radius: 8,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Dialog",
+    defIcon: null,
+  },
+  shadcnPopover: {
+    label: "Shadcn Popover",
+    noun: "Shadcnポップオーバー",
+    category: "shadcn",
+    paletteIcon: "chat_bubble",
+    w: 260,
+    h: 120,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Popover",
+    defIcon: null,
+  },
+  shadcnBadge: {
+    label: "Shadcn Badge",
+    noun: "Shadcnバッジ",
+    category: "shadcn",
+    paletteIcon: "label",
+    w: 90,
+    h: 28,
+    radius: 12,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Badge",
+    defIcon: null,
+  },
+  shadcnInput: {
+    label: "Shadcn Input",
+    noun: "Shadcn入力",
+    category: "shadcn",
+    paletteIcon: "edit_note",
+    w: 240,
+    h: 40,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Input",
+    defIcon: null,
+  },
 };
 
 export const KIND_ORDER: Kind[] = [
@@ -1789,6 +1854,7 @@ export function makeItem(kind: Kind): Item {
   if (kind === "toolbar") it.tabs = defaultTabsFor(kind).slice(0, 4);
   if (kind === "shadcnButton") {
     it.shadcnProps = { buttonVariant: "default", buttonSize: "default" };
+    it.layer = createDefaultLayer("Button");
   }
   if (kind === "shadcnCard") {
     it.shadcnProps = {
@@ -1796,12 +1862,27 @@ export function makeItem(kind: Kind): Item {
       cardDescription: "Deploy your new project in one-click.",
       cardContent: "Your project dashboard will be available immediately.",
     };
+    it.layer = createDefaultLayer("Card");
   }
   if (kind === "shadcnSelect") {
     it.shadcnProps = {
       selectPlaceholder: "Select a framework",
       selectOptions: ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"],
     };
+    it.layer = createDefaultLayer("Select");
+  }
+  if (kind === "shadcnDialog") {
+    it.layer = createDefaultLayer("Dialog");
+    it.renderMode = "edit";
+  }
+  if (kind === "shadcnPopover") {
+    it.layer = createDefaultLayer("Popover");
+  }
+  if (kind === "shadcnBadge") {
+    it.layer = createDefaultLayer("Badge");
+  }
+  if (kind === "shadcnInput") {
+    it.layer = createDefaultLayer("Input");
   }
   return it;
 }

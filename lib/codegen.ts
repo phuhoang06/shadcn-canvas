@@ -1,8 +1,9 @@
 import { Doc, Frame, Item, frameOfGroup } from "./tokens";
+import type { ComponentLayer } from "./registry/types";
+import { getComponentDefinition } from "./registry";
 
 /**
  * Converts a frame name into a valid PascalCase React component name.
- * e.g., "Home" -> "HomeScreen", "home-screen" -> "HomeScreen", "Screen 1" -> "Screen1"
  */
 export function toComponentName(name?: string): string {
   if (!name || !name.trim()) return "HomeScreen";
@@ -30,65 +31,142 @@ function escapeJsxText(text: string): string {
   return text.replace(/[{}]/g, (m) => `{'${m}'}`);
 }
 
-function serializeButton(item: Item): string {
-  const variant = item.shadcnProps?.buttonVariant ?? "default";
-  const size = item.shadcnProps?.buttonSize ?? "default";
-  const label = escapeJsxText(item.label || "Shadcn Button");
-  return `      <Button variant="${variant}" size="${size}">\n        ${label}\n      </Button>`;
-}
+/**
+ * Map từ Tên Component sang đường dẫn import trong @/components/ui/
+ */
+const COMPONENT_MODULE_MAP: Record<string, string> = {
+  Button: "@/components/ui/button",
+  Badge: "@/components/ui/badge",
+  Card: "@/components/ui/card",
+  CardHeader: "@/components/ui/card",
+  CardFooter: "@/components/ui/card",
+  CardTitle: "@/components/ui/card",
+  CardDescription: "@/components/ui/card",
+  CardContent: "@/components/ui/card",
+  Dialog: "@/components/ui/dialog",
+  DialogTrigger: "@/components/ui/dialog",
+  DialogContent: "@/components/ui/dialog",
+  DialogHeader: "@/components/ui/dialog",
+  DialogFooter: "@/components/ui/dialog",
+  DialogTitle: "@/components/ui/dialog",
+  DialogDescription: "@/components/ui/dialog",
+  DialogClose: "@/components/ui/dialog",
+  Popover: "@/components/ui/popover",
+  PopoverTrigger: "@/components/ui/popover",
+  PopoverContent: "@/components/ui/popover",
+  Select: "@/components/ui/select",
+  SelectTrigger: "@/components/ui/select",
+  SelectContent: "@/components/ui/select",
+  SelectItem: "@/components/ui/select",
+  SelectValue: "@/components/ui/select",
+  Input: "@/components/ui/input",
+  Textarea: "@/components/ui/textarea",
+  Separator: "@/components/ui/separator",
+};
 
-function serializeCard(item: Item): string {
-  const title = escapeJsxText(item.shadcnProps?.cardTitle || item.label || "Card Title");
-  const description = escapeJsxText(item.shadcnProps?.cardDescription || "Card Description");
-  const content = escapeJsxText(item.shadcnProps?.cardContent || "Card Content");
-  return [
-    "      <Card>",
-    "        <CardHeader>",
-    `          <CardTitle>${title}</CardTitle>`,
-    `          <CardDescription>${description}</CardDescription>`,
-    "        </CardHeader>",
-    "        <CardContent>",
-    `          <p>${content}</p>`,
-    "        </CardContent>",
-    "      </Card>",
-  ].join("\n");
-}
-
-function serializeSelect(item: Item): string {
-  const options = item.shadcnProps?.selectOptions ?? ["Option 1", "Option 2", "Option 3"];
-  const defaultValue = options[0] ?? "";
-  const placeholder = escapeJsxText(item.shadcnProps?.selectPlaceholder || item.label || "Select...");
-  const optionItems = options
-    .map((opt) => `          <SelectItem value="${opt}">${escapeJsxText(opt)}</SelectItem>`)
-    .join("\n");
-
-  return [
-    `      <Select defaultValue="${defaultValue}">`,
-    "        <SelectTrigger>",
-    `          <SelectValue placeholder="${placeholder}" />`,
-    "        </SelectTrigger>",
-    "        <SelectContent>",
-    optionItems,
-    "        </SelectContent>",
-    "      </Select>",
-  ].join("\n");
-}
-
-function serializeItem(item: Item): string | null {
-  switch (item.kind) {
-    case "shadcnButton":
-      return serializeButton(item);
-    case "shadcnCard":
-      return serializeCard(item);
-    case "shadcnSelect":
-      return serializeSelect(item);
-    default:
-      return null;
+/**
+ * Thu thập tất cả các loại component được sử dụng trong cây ComponentLayer
+ */
+function collectComponentTypes(layer: ComponentLayer, set: Set<string>) {
+  set.add(layer.type);
+  if (Array.isArray(layer.children)) {
+    for (const child of layer.children) {
+      collectComponentTypes(child, set);
+    }
   }
 }
 
 /**
- * Gathers items for the specified frameId, falling back to the first frame or all items.
+ * Sinh mã JSX đệ quy từ ComponentLayer (Thuần khiết AST, không leak runtime canvas)
+ */
+export function serializeLayer(layer: ComponentLayer, indent: number = 6): string {
+  const pad = " ".repeat(indent);
+  const type = layer.type;
+
+  // Lọc và format props
+  const propEntries = Object.entries(layer.props || {}).filter(([k, v]) => {
+    return v !== undefined && v !== null && k !== "children" && !k.startsWith("__");
+  });
+
+  const attrs = propEntries
+    .map(([k, v]) => {
+      if (typeof v === "boolean") return v ? k : `${k}={false}`;
+      if (typeof v === "string") return `${k}="${v}"`;
+      return `${k}={${JSON.stringify(v)}}`;
+    })
+    .join(" ");
+
+  const attrStr = attrs ? ` ${attrs}` : "";
+
+  // Trường hợp children là text
+  if (typeof layer.children === "string") {
+    return `${pad}<${type}${attrStr}>${escapeJsxText(layer.children)}</${type}>`;
+  }
+
+  // Trường hợp children là mảng các component con
+  if (Array.isArray(layer.children)) {
+    if (layer.children.length === 0) {
+      return `${pad}<${type}${attrStr} />`;
+    }
+    const childrenStr = layer.children
+      .map((child) => serializeLayer(child, indent + 2))
+      .join("\n");
+    return `${pad}<${type}${attrStr}>\n${childrenStr}\n${pad}</${type}>`;
+  }
+
+  return `${pad}<${type}${attrStr} />`;
+}
+
+/**
+ * Fallback cho các item Phase 1 cũ (chưa có layer)
+ */
+function serializeFallbackItem(item: Item): string | null {
+  if (item.kind === "shadcnButton") {
+    const variant = item.shadcnProps?.buttonVariant ?? "default";
+    const size = item.shadcnProps?.buttonSize ?? "default";
+    const label = escapeJsxText(item.label || "Shadcn Button");
+    return `      <Button variant="${variant}" size="${size}">\n        ${label}\n      </Button>`;
+  }
+  if (item.kind === "shadcnCard") {
+    const title = escapeJsxText(item.shadcnProps?.cardTitle || item.label || "Card Title");
+    const description = escapeJsxText(item.shadcnProps?.cardDescription || "Card Description");
+    const content = escapeJsxText(item.shadcnProps?.cardContent || "Card Content");
+    return [
+      "      <Card>",
+      "        <CardHeader>",
+      `          <CardTitle>${title}</CardTitle>`,
+      `          <CardDescription>${description}</CardDescription>`,
+      "        </CardHeader>",
+      "        <CardContent>",
+      `          <p>${content}</p>`,
+      "        </CardContent>",
+      "      </Card>",
+    ].join("\n");
+  }
+  if (item.kind === "shadcnSelect") {
+    const options = item.shadcnProps?.selectOptions ?? ["Option 1", "Option 2", "Option 3"];
+    const defaultValue = options[0] ?? "";
+    const placeholder = escapeJsxText(item.shadcnProps?.selectPlaceholder || item.label || "Select...");
+    const optionItems = options
+      .map((opt) => `          <SelectItem value="${opt}">${escapeJsxText(opt)}</SelectItem>`)
+      .join("\n");
+
+    return [
+      `      <Select defaultValue="${defaultValue}">`,
+      "        <SelectTrigger>",
+      `          <SelectValue placeholder="${placeholder}" />`,
+      "        </SelectTrigger>",
+      "        <SelectContent>",
+      optionItems,
+      "        </SelectContent>",
+      "      </Select>",
+    ].join("\n");
+  }
+  return null;
+}
+
+/**
+ * Lấy danh sách item thuộc frame chỉ định
  */
 export function getFrameAndItems(doc: Doc, frameId?: string): { frame?: Frame; items: Item[] } {
   const targetFrame = frameId
@@ -101,64 +179,84 @@ export function getFrameAndItems(doc: Doc, frameId?: string): { frame?: Frame; i
       .sort((a, b) => a.y - b.y || a.x - b.x);
 
     const items = frameGroups.flatMap((g) => g.items);
-    if (items.length > 0) {
-      return { frame: targetFrame, items };
-    }
+    return { frame: targetFrame, items };
   }
 
-  // Fallback: if no items found in target frame, or no frames exist, return all items
-  const allGroups = [...doc.groups].sort((a, b) => a.y - b.y || a.x - b.x);
-  const allItems = allGroups.flatMap((g) => g.items);
-  return { frame: targetFrame ?? doc.frames[0], items: allItems };
+  const allItems = doc.groups.flatMap((g) => g.items);
+  return { frame: undefined, items: allItems };
 }
 
 /**
- * Generates idiomatic React TSX for shadcn components contained in a canvas document frame.
+ * Sinh toàn bộ file mã nguồn React TSX hoàn chỉnh cho Frame
  */
 export function generateTsx(doc: Doc, frameId?: string): string {
   const { frame, items } = getFrameAndItems(doc, frameId);
+  const componentName = toComponentName(frame?.name ?? doc.title);
 
-  const hasButton = items.some((it) => it.kind === "shadcnButton");
-  const hasCard = items.some((it) => it.kind === "shadcnCard");
-  const hasSelect = items.some((it) => it.kind === "shadcnSelect");
+  // Thu thập các linh kiện được sử dụng
+  const usedComponentTypes = new Set<string>();
 
-  const importStatements: string[] = ['import React from "react";'];
+  const componentJsxBlocks: string[] = [];
 
-  if (hasButton) {
-    importStatements.push('import { Button } from "@/components/ui/button";');
+  for (const item of items) {
+    if (item.layer) {
+      collectComponentTypes(item.layer, usedComponentTypes);
+      componentJsxBlocks.push(serializeLayer(item.layer, 6));
+    } else {
+      const fallback = serializeFallbackItem(item);
+      if (fallback) {
+        if (item.kind === "shadcnButton") usedComponentTypes.add("Button");
+        if (item.kind === "shadcnCard") {
+          usedComponentTypes.add("Card");
+          usedComponentTypes.add("CardHeader");
+          usedComponentTypes.add("CardTitle");
+          usedComponentTypes.add("CardDescription");
+          usedComponentTypes.add("CardContent");
+        }
+        if (item.kind === "shadcnSelect") {
+          usedComponentTypes.add("Select");
+          usedComponentTypes.add("SelectTrigger");
+          usedComponentTypes.add("SelectValue");
+          usedComponentTypes.add("SelectContent");
+          usedComponentTypes.add("SelectItem");
+        }
+        componentJsxBlocks.push(fallback);
+      }
+    }
   }
-  if (hasCard) {
-    importStatements.push(
-      'import {\n  Card,\n  CardHeader,\n  CardTitle,\n  CardDescription,\n  CardContent,\n} from "@/components/ui/card";'
-    );
-  }
-  if (hasSelect) {
-    importStatements.push(
-      'import {\n  Select,\n  SelectContent,\n  SelectItem,\n  SelectTrigger,\n  SelectValue,\n} from "@/components/ui/select";'
-    );
+
+  // Gom nhóm import theo đường dẫn module
+  const moduleToTypesMap = new Map<string, Set<string>>();
+  for (const type of usedComponentTypes) {
+    const mod = COMPONENT_MODULE_MAP[type];
+    if (mod) {
+      if (!moduleToTypesMap.has(mod)) {
+        moduleToTypesMap.set(mod, new Set());
+      }
+      moduleToTypesMap.get(mod)!.add(type);
+    }
   }
 
-  const serializedBlocks = items
-    .map((it) => serializeItem(it))
-    .filter((code): code is string => code !== null);
+  const importStatements: string[] = [];
+  for (const [mod, types] of moduleToTypesMap.entries()) {
+    const sortedTypes = Array.from(types).sort().join(", ");
+    importStatements.push(`import { ${sortedTypes} } from "${mod}";`);
+  }
 
-  const componentName = toComponentName(frame?.name);
+  const importsCode = importStatements.length > 0 ? `${importStatements.join("\n")}\n\n` : "";
 
   const bodyContent =
-    serializedBlocks.length > 0
-      ? serializedBlocks.join("\n\n")
-      : '      {/* Add shadcn components to this screen to see them exported */}\n      <p className="text-muted-foreground text-sm">No shadcn components on this screen.</p>';
+    componentJsxBlocks.length > 0
+      ? componentJsxBlocks.join("\n\n")
+      : '      <div className="p-8 text-center text-muted-foreground">\n        No components on this screen.\n      </div>';
 
-  return [
-    importStatements.join("\n"),
-    "",
-    `export default function ${componentName}() {`,
-    "  return (",
-    '    <div className="flex flex-col gap-4 p-6">',
-    bodyContent,
-    "    </div>",
-    "  );",
-    "}",
-    "",
-  ].join("\n");
+  return `import React from "react";
+${importsCode}export default function ${componentName}() {
+  return (
+    <div className="w-full min-h-screen bg-background text-foreground p-6 flex flex-col gap-6">
+${bodyContent}
+    </div>
+  );
+}
+`;
 }
