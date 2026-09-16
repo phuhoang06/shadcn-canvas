@@ -99,6 +99,7 @@ import { hasShareHash, readShareHash } from "@/lib/share";
 import { LoadingIndicator } from "@/components/Loading";
 import { draftDesign } from "@/lib/ai";
 import { ShareDialog } from "@/components/ShareMenu";
+import { ExportModal } from "@/components/ExportModal";
 import { ColorPanel } from "@/components/ColorPanel";
 import { MotionPanel, ShapePanel, TypePanel } from "@/components/ThemePanel";
 import { ThemeContext, ensureFontLoaded, ensureLangFontLoaded } from "@/lib/theme";
@@ -385,6 +386,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
   /** a project file waiting for the author to confirm replacing the canvas */
   const [pendingImport, setPendingImport] = useState<Doc | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   /** the idea typed into the "ask an AI" dialog; kept here so a failed draft does not lose it */
   const [ideaText, setIdeaText] = useState("");
   /** a model is drafting a design right now */
@@ -2772,7 +2774,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
           t.isContentEditable);
       if (typing) return;
       // dialogs and the preview own the keyboard while they are up
-      if (confirmClear || pendingImport !== null || shareOpen || previewId !== null) return;
+      if (confirmClear || pendingImport !== null || shareOpen || previewId !== null || exportOpen) return;
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === "z") {
         e.preventDefault();
@@ -2875,6 +2877,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
     confirmClear,
     pendingImport,
     shareOpen,
+    exportOpen,
     previewId,
     editAccess,
   ]);
@@ -3883,6 +3886,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
                 showToast(t("copied", lang), 1400, "check");
               } catch {}
             }}
+            onExport={() => setExportOpen(true)}
           />
 
           {isMobile && (
@@ -3998,8 +4002,31 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
 
           {!rightOpen && !isMobile && (
             <div
-              style={{ position: "absolute", right: 20, top: 20, zIndex: 45 }}
+              style={{ position: "absolute", right: 20, top: 20, zIndex: 45, display: "flex", alignItems: "center", gap: 8 }}
             >
+              <button
+                onClick={() => setExportOpen(true)}
+                title="Export TSX"
+                className="m3-press"
+                style={{
+                  height: 44,
+                  padding: "0 14px",
+                  borderRadius: 22,
+                  border: "none",
+                  background: p.primary,
+                  color: p.onPrimary,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                }}
+              >
+                <Icon name="code" size={20} />
+                Export TSX
+              </button>
               <IconBtn
                 icon="right_panel_open"
                 p={p}
@@ -4050,6 +4077,29 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
                   height={40}
                 />
               </div>
+              <button
+                onClick={() => setExportOpen(true)}
+                title="Export TSX"
+                className="m3-press"
+                style={{
+                  height: 40,
+                  padding: "0 12px",
+                  borderRadius: 20,
+                  border: "none",
+                  background: p.primaryContainer,
+                  color: p.onPrimaryContainer,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <Icon name="code" size={18} />
+                Export TSX
+              </button>
               <IconBtn
                 icon="right_panel_close"
                 p={p}
@@ -4156,6 +4206,14 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
             setLeftOpen(true);
             setLeftTab("ai");
           }}
+        />
+
+        <ExportModal
+          doc={doc}
+          frameId={selectedFrameId ?? undefined}
+          isOpen={exportOpen}
+          onClose={() => setExportOpen(false)}
+          palette={p}
         />
 
 

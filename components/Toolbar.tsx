@@ -77,6 +77,7 @@ export function Toolbar({
   rightInset,
   mobile,
   onPrompt,
+  onExport,
   onSettings,
   onLangSheet,
   tidy,
@@ -112,6 +113,7 @@ export function Toolbar({
   rightInset: number;
   mobile?: boolean;
   onPrompt?: () => void;
+  onExport?: () => void;
   onSettings?: () => void;
   /** phone: open the language sheet instead of the menu */
   onLangSheet?: () => void;
@@ -157,6 +159,9 @@ export function Toolbar({
           <IconBtn icon="redo" p={p} onClick={onRedo} disabled={!canRedo} title={t("redo", lang)} size={S} />
           <IconBtn icon="translate" p={p} onClick={onLangSheet} title={t("language", lang)} size={S} />
           <IconBtn icon="palette" p={p} onClick={onSettings} title={t("settings", lang)} size={S} />
+          {onExport && (
+            <IconBtn icon="code" p={p} onClick={onExport} title="Export TSX" size={S} />
+          )}
           <GitHubLink p={p} size={S} />
           <button
             onClick={onPrompt}
@@ -377,6 +382,15 @@ export function Toolbar({
             size={40}
             fill
           />
+          {onExport && (
+            <IconBtn
+              icon="code"
+              p={p}
+              onClick={onExport}
+              title="Export TSX"
+              size={40}
+            />
+          )}
         </Pill>
 
         <Pill p={p}>
