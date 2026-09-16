@@ -41,6 +41,7 @@ import {
   SCROLL_TAB_W,
 } from "@/lib/tokens";
 import { CircularProgress, LinearProgress, LoadingIndicator } from "./Loading";
+import { ShadcnNode } from "./nodes/ShadcnNode";
 import { t, useLang } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import { railSelectedLabelColor } from "@/lib/color";
@@ -408,11 +409,15 @@ export function MeasuredContent({ item, p }: { item: Item; p: Palette }) {
   }
 }
 
-function Body({ item, p, tabScroll }: { item: Item; p: Palette; tabScroll?: number }) {
+function Body({ item, p, tabScroll, interactive }: { item: Item; p: Palette; tabScroll?: number; interactive?: boolean }) {
   const lang = useLang();
   const w = useWeight();
   const hasLabel = item.label.trim().length > 0;
   const hasSupporting = !!item.supporting?.trim();
+
+  if (item.kind.startsWith("shadcn")) {
+    return <ShadcnNode item={item} palette={p} interactive={interactive} />;
+  }
 
   if (MEASURED.includes(item.kind)) return <MeasuredContent item={item} p={p} />;
 
@@ -1234,6 +1239,7 @@ function Body({ item, p, tabScroll }: { item: Item; p: Palette; tabScroll?: numb
 }
 
 function boxStyle(item: Item, p: Palette): React.CSSProperties {
+  if (item.kind.startsWith("shadcn")) return { background: "transparent", border: "none" };
   if (NO_BOX.includes(item.kind)) return { background: "transparent", border: "none" };
   switch (item.kind) {
     case "box": {
@@ -1397,7 +1403,7 @@ export function M3Node({
         flex: "0 0 auto",
       }}
     >
-      <Body item={item} p={palette} tabScroll={tabScroll} />
+      <Body item={item} p={palette} tabScroll={tabScroll} interactive={interactive} />
     </motion.div>
   );
 }
@@ -1437,7 +1443,7 @@ export function M3Static({
         ...style,
       }}
     >
-      <Body item={item} p={palette} />
+      <Body item={item} p={palette} interactive={false} />
     </div>
   );
 }

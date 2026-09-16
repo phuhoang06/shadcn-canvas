@@ -539,6 +539,9 @@ export const KIND_TEXT: Record<
     tabs: { noun: "タブ" },
     radio: { noun: "ラジオボタン", label: "選択肢" },
     badge: { noun: "バッジ", label: "3" },
+    shadcnButton: { noun: "Shadcnボタン", label: "Shadcn Button" },
+    shadcnCard: { noun: "Shadcnカード", label: "Card Title" },
+    shadcnSelect: { noun: "Shadcnセレクト", label: "Select item" },
   },
   en: {
     box: { noun: "box" },
@@ -574,6 +577,9 @@ export const KIND_TEXT: Record<
     tabs: { noun: "tabs" },
     radio: { noun: "radio button", label: "Option" },
     badge: { noun: "badge", label: "3" },
+    shadcnButton: { noun: "Shadcn Button", label: "Shadcn Button" },
+    shadcnCard: { noun: "Shadcn Card", label: "Card Title" },
+    shadcnSelect: { noun: "Shadcn Select", label: "Select item" },
   },
   zh: {
     box: { noun: "容器框" },
@@ -609,6 +615,9 @@ export const KIND_TEXT: Record<
     tabs: { noun: "标签页" },
     radio: { noun: "单选按钮", label: "选项" },
     badge: { noun: "徽标", label: "3" },
+    shadcnButton: { noun: "Shadcn 按钮", label: "Shadcn Button" },
+    shadcnCard: { noun: "Shadcn 卡片", label: "Card Title" },
+    shadcnSelect: { noun: "Shadcn 选择器", label: "Select item" },
   },
   ko: {
     box: { noun: "상자" },
@@ -644,7 +653,17 @@ export const KIND_TEXT: Record<
     tabs: { noun: "탭" },
     radio: { noun: "라디오 버튼", label: "옵션" },
     badge: { noun: "배지", label: "3" },
+    shadcnButton: { noun: "Shadcn 버튼", label: "Shadcn Button" },
+    shadcnCard: { noun: "Shadcn 카드", label: "Card Title" },
+    shadcnSelect: { noun: "Shadcn 선택창", label: "Select item" },
   },
+};
+
+export const CATEGORY_TEXT: Record<Lang, Record<string, string>> = {
+  ja: { actions: "操作", navigation: "ナビゲーション", containment: "コンテナ", inputs: "入力", content: "コンテンツ", progress: "進捗", shadcn: "Shadcn / UI" },
+  en: { actions: "Actions", navigation: "Navigation", containment: "Containment", inputs: "Inputs", content: "Content", progress: "Progress", shadcn: "Shadcn / UI" },
+  zh: { actions: "操作", navigation: "导航", containment: "容器", inputs: "输入", content: "内容", progress: "进度", shadcn: "Shadcn / UI" },
+  ko: { actions: "동작", navigation: "내비게이션", containment: "컨테이너", inputs: "입력", content: "콘텐츠", progress: "진행 상태", shadcn: "Shadcn / UI" },
 };
 
 /** default labels of a tab row */

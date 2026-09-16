@@ -476,7 +476,22 @@ export type Kind =
   | "toolbar"
   | "tabs"
   | "radio"
-  | "badge";
+  | "badge"
+  | "shadcnButton"
+  | "shadcnCard"
+  | "shadcnSelect";
+
+export type ShadcnButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+export type ShadcnButtonSize = "default" | "sm" | "lg" | "icon";
+export type ShadcnProps = {
+  buttonVariant?: ShadcnButtonVariant;
+  buttonSize?: ShadcnButtonSize;
+  cardTitle?: string;
+  cardDescription?: string;
+  cardContent?: string;
+  selectPlaceholder?: string;
+  selectOptions?: string[];
+};
 
 export type Axis = "x" | "y";
 /** kinds that fuse into a run: buttons side by side, list items stacked */
@@ -485,7 +500,7 @@ export type ConnectSpec = { axis: Axis; outer: number; inner: number; family: st
 /** `presets` are quick picks shown as chips; values outside min..max are hidden */
 export type SizeSpec = { min: number; max: number; step: number; icon: string; presets?: number[] };
 
-export type Category = "actions" | "navigation" | "containment" | "inputs" | "content" | "progress";
+export type Category = "actions" | "navigation" | "containment" | "inputs" | "content" | "progress" | "shadcn";
 
 export const CATEGORIES: { key: Category; label: string; icon: string }[] = [
   { key: "actions", label: "Actions", icon: "touch_app" },
@@ -494,6 +509,7 @@ export const CATEGORIES: { key: Category; label: string; icon: string }[] = [
   { key: "inputs", label: "Inputs", icon: "toggle_on" },
   { key: "content", label: "Content", icon: "notes" },
   { key: "progress", label: "Progress", icon: "progress_activity" },
+  { key: "shadcn", label: "Shadcn / UI", icon: "widgets" },
 ];
 
 export type KindSpec = {
@@ -1117,6 +1133,51 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     defLabel: "3",
     defIcon: null,
   },
+  shadcnButton: {
+    label: "Shadcn Button",
+    noun: "Shadcnボタン",
+    category: "shadcn",
+    paletteIcon: "smart_button",
+    w: 140,
+    h: 40,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Shadcn Button",
+    defIcon: null,
+  },
+  shadcnCard: {
+    label: "Shadcn Card",
+    noun: "Shadcnカード",
+    category: "shadcn",
+    paletteIcon: "ad_units",
+    w: 320,
+    h: 180,
+    radius: 8,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Card Title",
+    defIcon: null,
+  },
+  shadcnSelect: {
+    label: "Shadcn Select",
+    noun: "Shadcnセレクト",
+    category: "shadcn",
+    paletteIcon: "list",
+    w: 240,
+    h: 40,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Select item",
+    defIcon: null,
+  },
 };
 
 export const KIND_ORDER: Kind[] = [
@@ -1153,6 +1214,9 @@ export const KIND_ORDER: Kind[] = [
   "loadingIndicator",
   "linearProgress",
   "circularProgress",
+  "shadcnButton",
+  "shadcnCard",
+  "shadcnSelect",
 ];
 
 /* ---------- screen data ---------- */
@@ -1166,6 +1230,7 @@ export type Item = {
   icon2?: string | null;
   variant: Variant;
   supporting?: string;
+  shadcnProps?: ShadcnProps;
   size?: number;
   radiusTop?: number;
   radiusBottom?: number;
@@ -1716,6 +1781,22 @@ export function makeItem(kind: Kind): Item {
   }
   if (kind === "tabs" || kind === "fabMenu" || kind === "select") it.tabs = defaultTabsFor(kind);
   if (kind === "toolbar") it.tabs = defaultTabsFor(kind).slice(0, 4);
+  if (kind === "shadcnButton") {
+    it.shadcnProps = { buttonVariant: "default", buttonSize: "default" };
+  }
+  if (kind === "shadcnCard") {
+    it.shadcnProps = {
+      cardTitle: "Create project",
+      cardDescription: "Deploy your new project in one-click.",
+      cardContent: "Your project dashboard will be available immediately.",
+    };
+  }
+  if (kind === "shadcnSelect") {
+    it.shadcnProps = {
+      selectPlaceholder: "Select a framework",
+      selectOptions: ["Next.js", "SvelteKit", "Nuxt.js", "Remix", "Astro"],
+    };
+  }
   return it;
 }
 
