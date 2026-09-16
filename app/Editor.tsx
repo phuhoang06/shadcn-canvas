@@ -867,6 +867,24 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
   useEffect(() => {
     (window as any).__setZoom = setZoomAt;
     (window as any).__setView = setView;
+    (window as any).__addItem = (kind: Kind) => {
+      const item = makeItem(kind);
+      const f = framesRef.current[0];
+      const x = f ? f.x + 20 : 100;
+      const y = f ? f.y + 120 : 100;
+      setGroups((gs) => [
+        ...gs,
+        {
+          id: uid(),
+          x,
+          y,
+          axis: "x",
+          items: [item],
+        },
+      ]);
+      setSelectedIds([item.id]);
+      return item;
+    };
   }, [setZoomAt]);
 
   const fit = useCallback(() => {
