@@ -57,6 +57,8 @@ import {
   scaleR,
   Place,
   AlignKind,
+  ShadcnButtonVariant,
+  ShadcnButtonSize,
 } from "@/lib/tokens";
 import { IconPicker } from "./IconPicker";
 import { Icon } from "./M3Node";
@@ -608,6 +610,40 @@ function AlignSection({ single, onAlign, p }: { single: boolean; onAlign: (kind:
   );
 }
 
+function ShadcnOptionsField({
+  value,
+  onChange,
+  p,
+}: {
+  value: string[];
+  onChange: (val: string) => void;
+  p: Palette;
+}) {
+  const [text, setText] = useState(() => value.join(", "));
+
+  useEffect(() => {
+    const parsed = text.split(",").map((s) => s.trim()).filter(Boolean);
+    if (JSON.stringify(value) !== JSON.stringify(parsed)) {
+      setText(value.join(", "));
+    }
+  }, [value, text]);
+
+  return (
+    <Field
+      value={text}
+      onChange={(val) => {
+        setText(val);
+        onChange(val);
+      }}
+      placeholder="Option 1, Option 2, Option 3"
+      p={p}
+      icon="list"
+      multiline
+      rows={2}
+    />
+  );
+}
+
 export function Inspector({
   ai,
   item,
@@ -880,7 +916,184 @@ export function Inspector({
 
       {onAlign && !editOn && <AlignSection single onAlign={onAlign} p={p} />}
 
-      {(spec.hasLabel || spec.hasSupporting) && (
+      {item.kind.startsWith("shadcn") && (
+        <Section id="shadcn" icon="tune" title="Shadcn Props" p={p}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {item.kind === "shadcnButton" && (
+              <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant }}>Label</div>
+                  <Field
+                    value={item.label}
+                    onChange={(label) => onChange({ label })}
+                    placeholder="Button Label"
+                    p={p}
+                    icon="short_text"
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant }}>Variant</div>
+                  <select
+                    value={item.shadcnProps?.buttonVariant ?? "default"}
+                    onChange={(e) => {
+                      const val = e.target.value as ShadcnButtonVariant;
+                      onChange({
+                        shadcnProps: {
+                          ...item.shadcnProps,
+                          buttonVariant: val,
+                        },
+                      });
+                    }}
+                    style={{
+                      width: "100%",
+                      height: 40,
+                      padding: "0 12px",
+                      borderRadius: 20,
+                      border: `1px solid ${p.outlineVariant}`,
+                      background: p.surfaceContainerHigh,
+                      color: p.onSurface,
+                      fontSize: 14,
+                      outline: "none",
+                      boxSizing: "border-box",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    <option value="default">default</option>
+                    <option value="destructive">destructive</option>
+                    <option value="outline">outline</option>
+                    <option value="secondary">secondary</option>
+                    <option value="ghost">ghost</option>
+                    <option value="link">link</option>
+                  </select>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant }}>Size</div>
+                  <Segmented<ShadcnButtonSize>
+                    options={[
+                      { key: "default", label: "default" },
+                      { key: "sm", label: "sm" },
+                      { key: "lg", label: "lg" },
+                      { key: "icon", label: "icon" },
+                    ]}
+                    value={item.shadcnProps?.buttonSize ?? "default"}
+                    onChange={(val) =>
+                      onChange({
+                        shadcnProps: {
+                          ...item.shadcnProps,
+                          buttonSize: val,
+                        },
+                      })
+                    }
+                    p={p}
+                    height={36}
+                  />
+                </div>
+              </>
+            )}
+
+            {item.kind === "shadcnCard" && (
+              <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant }}>Card Title</div>
+                  <Field
+                    value={item.shadcnProps?.cardTitle ?? item.label ?? ""}
+                    onChange={(val) =>
+                      onChange({
+                        label: val,
+                        shadcnProps: {
+                          ...item.shadcnProps,
+                          cardTitle: val,
+                        },
+                      })
+                    }
+                    placeholder="Card Title"
+                    p={p}
+                    icon="title"
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant }}>Card Description</div>
+                  <Field
+                    value={item.shadcnProps?.cardDescription ?? ""}
+                    onChange={(val) =>
+                      onChange({
+                        shadcnProps: {
+                          ...item.shadcnProps,
+                          cardDescription: val,
+                        },
+                      })
+                    }
+                    placeholder="Card Description"
+                    p={p}
+                    icon="notes"
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant }}>Card Content</div>
+                  <Field
+                    value={item.shadcnProps?.cardContent ?? ""}
+                    onChange={(val) =>
+                      onChange({
+                        shadcnProps: {
+                          ...item.shadcnProps,
+                          cardContent: val,
+                        },
+                      })
+                    }
+                    placeholder="Card Content"
+                    p={p}
+                    icon="notes"
+                    multiline
+                    rows={3}
+                  />
+                </div>
+              </>
+            )}
+
+            {item.kind === "shadcnSelect" && (
+              <>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant }}>Placeholder</div>
+                  <Field
+                    value={item.shadcnProps?.selectPlaceholder ?? item.label ?? ""}
+                    onChange={(val) =>
+                      onChange({
+                        label: val,
+                        shadcnProps: {
+                          ...item.shadcnProps,
+                          selectPlaceholder: val,
+                        },
+                      })
+                    }
+                    placeholder="Select placeholder..."
+                    p={p}
+                    icon="short_text"
+                  />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: p.onSurfaceVariant }}>Options (comma-separated)</div>
+                  <ShadcnOptionsField
+                    key={item.id}
+                    value={item.shadcnProps?.selectOptions ?? ["Option 1", "Option 2", "Option 3"]}
+                    onChange={(val) =>
+                      onChange({
+                        shadcnProps: {
+                          ...item.shadcnProps,
+                          selectOptions: val.split(",").map((s) => s.trim()).filter(Boolean),
+                        },
+                      })
+                    }
+                    p={p}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </Section>
+      )}
+
+      {(spec.hasLabel || spec.hasSupporting) && !item.kind.startsWith("shadcn") && (
         <Section id="text" icon="title" title={t("text", lang)} p={p}>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {spec.hasLabel && (
