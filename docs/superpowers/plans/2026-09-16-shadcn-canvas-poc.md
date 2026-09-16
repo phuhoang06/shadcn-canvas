@@ -109,10 +109,10 @@ git commit -m "test(canvas): verify Radix Select portal behavior under canvas zo
 - Create: `components/ui/card.tsx`
 - Modify: `components/ui/button.tsx` (support edit-mode pointer-events gating)
 
-- [ ] **Step 1: Port `button.tsx` and `card.tsx`**
-- [ ] **Step 2: Add interaction gating (click-to-select vs click-to-activate)**
-- [ ] **Step 3: Verify build**
-- [ ] **Step 4: Commit**
+- [x] **Step 1: Port `button.tsx` and `card.tsx`**
+- [x] **Step 2: Add interaction gating (click-to-select vs click-to-activate)**
+- [x] **Step 3: Verify build**
+- [x] **Step 4: Commit**
 
 ---
 
