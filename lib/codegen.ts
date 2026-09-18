@@ -107,9 +107,30 @@ export function serializeLayer(layer: ComponentLayer, indent: number = 6): strin
   const pad = " ".repeat(indent);
   const type = layer.type;
 
-  // Lọc và format props
-  const propEntries = Object.entries(layer.props || {}).filter(([k, v]) => {
-    return v !== undefined && v !== null && k !== "children" && !k.startsWith("__");
+  // Lọc và format props (Mapping controlled props sang uncontrolled default* props cho standalone code)
+  const normalizedProps: Record<string, any> = { ...(layer.props || {}) };
+
+  // Checkbox & Switch: map 'checked' sang 'defaultChecked' để code standalone tương tác được
+  if (type === "Checkbox" || type === "Switch") {
+    if ("checked" in normalizedProps && !("defaultChecked" in normalizedProps)) {
+      normalizedProps.defaultChecked = normalizedProps.checked;
+    }
+    delete normalizedProps.checked;
+  }
+
+  // Dialog: map 'open' sang 'defaultOpen'
+  if (type === "Dialog") {
+    if ("open" in normalizedProps && !("defaultOpen" in normalizedProps)) {
+      normalizedProps.defaultOpen = normalizedProps.open;
+    }
+    delete normalizedProps.open;
+  }
+
+  const propEntries = Object.entries(normalizedProps).filter(([k, v]) => {
+    if (v === undefined || v === null || k === "children" || k.startsWith("__")) return false;
+    // Omit boolean false cho các thuộc tính presence-based
+    if ((k === "defaultChecked" || k === "defaultOpen" || k === "disabled") && v === false) return false;
+    return true;
   });
 
   const attrs = propEntries

@@ -182,9 +182,14 @@ export function SchemaInspector({ item, onChange, palette: p }: SchemaInspectorP
           {activeLayer.type === "Checkbox" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <Toggle
-                label="Checked"
-                on={!!activeProps.checked}
-                onChange={(v) => handlePropChange("checked", v)}
+                label="Default Checked"
+                on={!!(activeProps.defaultChecked ?? activeProps.checked)}
+                onChange={(v) => {
+                  handlePropChange("defaultChecked", v);
+                  if ("checked" in activeProps) {
+                    handlePropChange("checked", undefined);
+                  }
+                }}
                 p={p}
               />
               <Toggle
@@ -200,9 +205,14 @@ export function SchemaInspector({ item, onChange, palette: p }: SchemaInspectorP
           {activeLayer.type === "Switch" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <Toggle
-                label="Checked"
-                on={!!activeProps.checked}
-                onChange={(v) => handlePropChange("checked", v)}
+                label="Default Checked"
+                on={!!(activeProps.defaultChecked ?? activeProps.checked)}
+                onChange={(v) => {
+                  handlePropChange("defaultChecked", v);
+                  if ("checked" in activeProps) {
+                    handlePropChange("checked", undefined);
+                  }
+                }}
                 p={p}
               />
               <Toggle

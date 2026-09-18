@@ -80,9 +80,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export default function HomeScreen() {
   return (
     <div className="w-full min-h-screen bg-background text-foreground p-6 flex flex-col gap-6">
-      <Checkbox checked disabled />
+      <Checkbox defaultChecked disabled />
 
-      <Switch checked />
+      <Switch defaultChecked />
 
       <RadioGroup defaultValue="option-2">
         <RadioGroupItem value="option-1" />
@@ -101,7 +101,8 @@ export default function HomeScreen() {
   );
 }
 ```
-Ảnh chụp modal Export TSX với props tùy biến: `tier2-codegen-custom-props.png`.
+- **Uncontrolled Invariant:** `Checkbox` và `Switch` được map sang `defaultChecked` (thay vì `checked`), nhất quán với `defaultValue` của `Slider` và `RadioGroup`. Đảm bảo code TSX khi copy sang ứng dụng độc lập vẫn giữ trọn vẹn khả năng click tương tác bật/tắt, không bị khóa cứng (controlled lock) vì thiếu `onCheckedChange`.
+- Ảnh chụp modal Export TSX với props uncontrolled: `tier2-codegen-uncontrolled-verified.png`.
 
 ---
 

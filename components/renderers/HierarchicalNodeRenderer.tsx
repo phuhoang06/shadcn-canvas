@@ -498,8 +498,7 @@ export function HierarchicalNodeRenderer({
   if (layer.type === "Checkbox") {
     return (
       <Checkbox
-        checked={props.checked}
-        defaultChecked={props.defaultChecked}
+        defaultChecked={props.defaultChecked ?? props.checked}
         disabled={props.disabled}
         className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
         onClick={handleLayerClick}
@@ -511,8 +510,7 @@ export function HierarchicalNodeRenderer({
   if (layer.type === "Switch") {
     return (
       <Switch
-        checked={props.checked}
-        defaultChecked={props.defaultChecked}
+        defaultChecked={props.defaultChecked ?? props.checked}
         disabled={props.disabled}
         className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
         onClick={handleLayerClick}
