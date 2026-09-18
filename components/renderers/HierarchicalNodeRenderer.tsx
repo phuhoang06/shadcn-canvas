@@ -237,14 +237,11 @@ export function HierarchicalNodeRenderer({
     );
   }
   if (layer.type === "DialogContent") {
-    if (renderMode === "edit") {
-      return (
-        <div className={cn("p-4 bg-white rounded border shadow-sm space-y-2", props.className)}>
-          {renderChildren()}
-        </div>
-      );
-    }
-    return <DialogContent className={props.className}>{renderChildren()}</DialogContent>;
+    return (
+      <DialogContent isFrame={renderMode === "edit"} className={props.className}>
+        {renderChildren()}
+      </DialogContent>
+    );
   }
   if (layer.type === "DialogHeader") {
     return <DialogHeader className={props.className}>{renderChildren()}</DialogHeader>;
