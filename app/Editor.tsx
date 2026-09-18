@@ -867,11 +867,12 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
   useEffect(() => {
     (window as any).__setZoom = setZoomAt;
     (window as any).__setView = setView;
-    (window as any).__addItem = (kind: Kind) => {
+    (window as any).__setGroups = setGroups;
+    (window as any).__addItem = (kind: Kind, customX?: number, customY?: number) => {
       const item = makeItem(kind);
       const f = framesRef.current[0];
-      const x = f ? f.x + 20 : 100;
-      const y = f ? f.y + 120 : 100;
+      const x = customX !== undefined ? customX : (f ? f.x + 20 : 100);
+      const y = customY !== undefined ? customY : (f ? f.y + 120 : 100);
       setGroups((gs) => [
         ...gs,
         {

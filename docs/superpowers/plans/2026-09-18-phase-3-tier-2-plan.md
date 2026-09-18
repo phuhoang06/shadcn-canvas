@@ -19,9 +19,9 @@
 **Files:**
 - Modify: `components/renderers/HierarchicalNodeRenderer.tsx`
 
-- [ ] **Step 1: Phân tích cơ chế bắt sự kiện:** Container `motion.div` trong `M3Node.tsx` gắn `onPointerDown={onPointerDown}` gọi `onItemPointerDown` trong `Editor.tsx`. Bất kỳ `pointermove` nào vượt ngưỡng 5px sẽ kích hoạt kéo node (`d.active = true`).
-- [ ] **Step 2: Triển khai Pointer Isolation Wrapper:** Trong `HierarchicalNodeRenderer.tsx`, bổ sung hàm trợ giúp chặn sự kiện nổi bọt `onPointerDown={(e) => { e.stopPropagation(); onSelectLayer?.(layer.id); }}` cho các linh kiện có thao tác drag/input cục bộ.
-- [ ] **Step 3: Commit thiết kế:** `git commit -m "feat(renderers): implement pointer event isolation helper for interactive canvas controls"`
+- [x] **Step 1: Phân tích cơ chế bắt sự kiện:** Container `motion.div` trong `M3Node.tsx` gắn `onPointerDown={onPointerDown}` gọi `onItemPointerDown` trong `Editor.tsx`. Bất kỳ `pointermove` nào vượt ngưỡng 5px sẽ kích hoạt kéo node (`d.active = true`).
+- [x] **Step 2: Triển khai Pointer Isolation Wrapper:** Trong `HierarchicalNodeRenderer.tsx`, bổ sung hàm trợ giúp chặn sự kiện nổi bọt `onPointerDown={(e) => { e.stopPropagation(); onSelectLayer?.(layer.id); }}` cho các linh kiện có thao tác drag/input cục bộ.
+- [x] **Step 3: Commit thiết kế:** `git commit -m "feat(renderers): implement pointer event isolation helper for interactive canvas controls"`
 
 ---
 
@@ -36,17 +36,17 @@
 - Create: `components/ui/label.tsx`
 - Create: `components/ui/avatar.tsx`
 
-- [ ] **Step 1: Cài đặt dependencies mới:**
+- [x] **Step 1: Cài đặt dependencies mới:**
   `npm install @radix-ui/react-checkbox @radix-ui/react-switch @radix-ui/react-slider @radix-ui/react-radio-group @radix-ui/react-label @radix-ui/react-avatar`
-- [ ] **Step 2: Port các components từ `reference/ui-builder/components/ui/`:**
+- [x] **Step 2: Port các components từ `reference/ui-builder/components/ui/`:**
   - `checkbox.tsx`
   - `switch.tsx`
   - `slider.tsx`
   - `radio-group.tsx`
   - `label.tsx`
   - `avatar.tsx`
-- [ ] **Step 3: Chạy typecheck:** `npm run typecheck` đảm bảo không có lỗi biên dịch.
-- [ ] **Step 4: Commit:** `git commit -m "feat(components): port shadcn form controls (checkbox, switch, slider, radio-group, label, avatar)"`
+- [x] **Step 3: Chạy typecheck:** `npm run typecheck` đảm bảo không có lỗi biên dịch.
+- [x] **Step 4: Commit:** `git commit -m "feat(components): port shadcn form controls (checkbox, switch, slider, radio-group, label, avatar)"`
 
 ---
 
@@ -56,16 +56,16 @@
 - Modify: `lib/registry/definitions.ts`
 - Modify: `lib/tokens.ts`
 
-- [ ] **Step 1: Định nghĩa Schema & Default Children trong `lib/registry/definitions.ts`:**
+- [x] **Step 1: Định nghĩa Schema & Default Children trong `lib/registry/definitions.ts`:**
   - `Checkbox`: checked, defaultChecked, disabled.
   - `Switch`: checked, defaultChecked, disabled.
   - `Slider`: defaultValue, min, max, step, disabled.
   - `RadioGroup` & `RadioGroupItem`: defaultValue, value, disabled.
   - `Label`: children, htmlFor.
   - `Avatar`, `AvatarImage`, `AvatarFallback`: src, alt, fallback text.
-- [ ] **Step 2: Cập nhật Tokens trong `lib/tokens.ts`:**
+- [x] **Step 2: Cập nhật Tokens trong `lib/tokens.ts`:**
   - Bổ sung `shadcnCheckbox`, `shadcnSwitch`, `shadcnSlider`, `shadcnRadioGroup`, `shadcnLabel`, `shadcnAvatar` vào `Kind`, `KIND_SPEC`, `KIND_ORDER`, và `makeItem`.
-- [ ] **Step 3: Commit:** `git commit -m "feat(registry): register definitions and tokens for form control components"`
+- [x] **Step 3: Commit:** `git commit -m "feat(registry): register definitions and tokens for form control components"`
 
 ---
 
@@ -75,10 +75,10 @@
 - Modify: `components/renderers/HierarchicalNodeRenderer.tsx`
 - Modify: `lib/codegen.ts`
 
-- [ ] **Step 1: Thêm nhánh render đệ quy cho cả 6 linh kiện** trong `HierarchicalNodeRenderer.tsx` với đầy đủ xử lý `interactive` và `onSelectLayer`.
-- [ ] **Step 2: Cập nhật `lib/codegen.ts`:** Khai báo mapping module tương ứng cho 6 file components mới.
-- [ ] **Step 3: Kiểm tra build:** `npm run typecheck` và `npm run build`.
-- [ ] **Step 4: Commit:** `git commit -m "feat(renderers): add recursive rendering and codegen for tier 2 form controls"`
+- [x] **Step 1: Thêm nhánh render đệ quy cho cả 6 linh kiện** trong `HierarchicalNodeRenderer.tsx` với đầy đủ xử lý `interactive` và `onSelectLayer`.
+- [x] **Step 2: Cập nhật `lib/codegen.ts`:** Khai báo mapping module tương ứng cho 6 file components mới.
+- [x] **Step 3: Kiểm tra build:** `npm run typecheck` và `npm run build`.
+- [x] **Step 4: Commit:** `git commit -m "feat(renderers): add recursive rendering and codegen for tier 2 form controls"`
 
 ---
 
@@ -88,13 +88,13 @@
 - Test via Chrome DevTools Protocol (CDP)
 - Create artifact: `tier-2-form-controls-evidence.md`
 
-- [ ] **Step 1: Test tương tác Slider Thumb qua CDP:**
+- [x] **Step 1: Test tương tác Slider Thumb qua CDP:**
   - Giả lập `pointerdown` trên Slider Thumb, kéo chuột 50px theo trục hoành (`pointermove`), sau đó `pointerup`.
   - Đo tọa độ của `CanvasNode` trước và sau thao tác: xác nhận Node **không bị di chuyển** ($dx_{node} = 0.00\text{px}$).
   - Đo vị trí của Thumb: xác nhận Slider value đã cập nhật thành công.
-- [ ] **Step 2: Test Checkbox, Switch, RadioGroup:** Bấm thử nghiệm qua sự kiện click và ghi nhận thay đổi DOM `data-state` / `aria-checked`.
-- [ ] **Step 3: Chụp ảnh màn hình đối chứng và lập bảng dữ liệu trong `tier-2-form-controls-evidence.md`.**
-- [ ] **Step 4: Commit tài liệu:** `git commit -m "test(cdp): verify slider drag isolation and form control interactivity"`
+- [x] **Step 2: Test Checkbox, Switch, RadioGroup:** Bấm thử nghiệm qua sự kiện click và ghi nhận thay đổi DOM `data-state` / `aria-checked`.
+- [x] **Step 3: Chụp ảnh màn hình đối chứng và lập bảng dữ liệu trong `tier-2-form-controls-evidence.md`.**
+- [x] **Step 4: Commit tài liệu:** `git commit -m "test(cdp): verify slider drag isolation and form control interactivity"`
 
 ---
 
@@ -103,6 +103,6 @@
 **Files:**
 - Create: `docs/phase-3-tier-2-report.md`
 
-- [ ] **Step 1: Soạn thảo báo cáo nghiệm thu `docs/phase-3-tier-2-report.md`.**
-- [ ] **Step 2: Chạy full verification:** `npm run typecheck && npm run build` đạt exit code 0.
-- [ ] **Step 3: Commit:** `git commit -m "docs(phase3): add tier-2 evaluation report and form control verification"`
+- [x] **Step 1: Soạn thảo báo cáo nghiệm thu `docs/phase-3-tier-2-report.md`.**
+- [x] **Step 2: Chạy full verification:** `npm run typecheck && npm run build` đạt exit code 0.
+- [x] **Step 3: Commit:** `git commit -m "docs(phase3): add tier-2 evaluation report and form control verification"`
