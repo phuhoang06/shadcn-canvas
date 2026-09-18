@@ -32,6 +32,29 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 
 export const componentRegistry: ComponentRegistry = {
   // ============================================
@@ -435,6 +458,250 @@ export const componentRegistry: ComponentRegistry = {
       orientation: z.enum(["horizontal", "vertical"]).default("horizontal"),
     }),
     from: "@/components/ui/separator",
+    defaultChildren: [],
+  },
+
+  // ============================================
+  // DROPDOWN MENU (NESTED PORTALS)
+  // ============================================
+  DropdownMenu: {
+    component: DropdownMenu,
+    schema: z.object({
+      defaultOpen: z.boolean().optional(),
+      open: z.boolean().optional(),
+      modal: z.boolean().optional(),
+    }),
+    from: "@/components/ui/dropdown-menu",
+    defaultChildren: [
+      {
+        id: "dropdown-trigger",
+        type: "DropdownMenuTrigger",
+        name: "DropdownMenuTrigger",
+        props: { asChild: true },
+        children: [
+          {
+            id: "dropdown-btn",
+            type: "Button",
+            name: "Button",
+            props: { variant: "outline" },
+            children: "Options Menu",
+          },
+        ],
+      },
+      {
+        id: "dropdown-content",
+        type: "DropdownMenuContent",
+        name: "DropdownMenuContent",
+        props: { sideOffset: 4 },
+        children: [
+          {
+            id: "dd-label",
+            type: "DropdownMenuLabel",
+            name: "DropdownMenuLabel",
+            props: {},
+            children: "Actions",
+          },
+          {
+            id: "dd-item-1",
+            type: "DropdownMenuItem",
+            name: "DropdownMenuItem",
+            props: {},
+            children: "Profile",
+          },
+          {
+            id: "dd-item-2",
+            type: "DropdownMenuItem",
+            name: "DropdownMenuItem",
+            props: {},
+            children: "Settings",
+          },
+          {
+            id: "dd-sep-1",
+            type: "DropdownMenuSeparator",
+            name: "DropdownMenuSeparator",
+            props: {},
+            children: [],
+          },
+          {
+            id: "dd-sub-1",
+            type: "DropdownMenuSub",
+            name: "DropdownMenuSub",
+            props: {},
+            children: [
+              {
+                id: "dd-sub-trigger",
+                type: "DropdownMenuSubTrigger",
+                name: "DropdownMenuSubTrigger",
+                props: {},
+                children: "More Tools",
+              },
+              {
+                id: "dd-sub-content",
+                type: "DropdownMenuSubContent",
+                name: "DropdownMenuSubContent",
+                props: { sideOffset: 2 },
+                children: [
+                  {
+                    id: "dd-sub-item-1",
+                    type: "DropdownMenuItem",
+                    name: "DropdownMenuItem",
+                    props: {},
+                    children: "Nested Action 1",
+                  },
+                  {
+                    id: "dd-sub-item-2",
+                    type: "DropdownMenuItem",
+                    name: "DropdownMenuItem",
+                    props: {},
+                    children: "Nested Action 2",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "dd-sep-2",
+            type: "DropdownMenuSeparator",
+            name: "DropdownMenuSeparator",
+            props: {},
+            children: [],
+          },
+          {
+            id: "dd-item-3",
+            type: "DropdownMenuItem",
+            name: "DropdownMenuItem",
+            props: {},
+            children: "Logout",
+          },
+        ],
+      },
+    ],
+  },
+  DropdownMenuTrigger: {
+    component: DropdownMenuTrigger,
+    schema: z.object({ asChild: z.boolean().optional() }),
+    from: "@/components/ui/dropdown-menu",
+    childOf: ["DropdownMenu"],
+    defaultChildren: [],
+  },
+  DropdownMenuContent: {
+    component: DropdownMenuContent,
+    schema: z.object({
+      className: z.string().optional(),
+      sideOffset: z.number().optional(),
+      align: z.enum(["start", "center", "end"]).optional(),
+    }),
+    from: "@/components/ui/dropdown-menu",
+    childOf: ["DropdownMenu"],
+    defaultChildren: [],
+  },
+  DropdownMenuItem: {
+    component: DropdownMenuItem,
+    schema: z.object({
+      className: z.string().optional(),
+      disabled: z.boolean().optional(),
+    }),
+    from: "@/components/ui/dropdown-menu",
+    childOf: ["DropdownMenuContent", "DropdownMenuSubContent", "DropdownMenuGroup"],
+    defaultChildren: "Menu Item",
+  },
+  DropdownMenuLabel: {
+    component: DropdownMenuLabel,
+    schema: z.object({ className: z.string().optional() }),
+    from: "@/components/ui/dropdown-menu",
+    childOf: ["DropdownMenuContent", "DropdownMenuSubContent"],
+    defaultChildren: "Label",
+  },
+  DropdownMenuSeparator: {
+    component: DropdownMenuSeparator,
+    schema: z.object({ className: z.string().optional() }),
+    from: "@/components/ui/dropdown-menu",
+    childOf: ["DropdownMenuContent", "DropdownMenuSubContent"],
+    defaultChildren: [],
+  },
+  DropdownMenuSub: {
+    component: DropdownMenuSub,
+    schema: z.object({}),
+    from: "@/components/ui/dropdown-menu",
+    childOf: ["DropdownMenuContent"],
+    defaultChildren: [],
+  },
+  DropdownMenuSubTrigger: {
+    component: DropdownMenuSubTrigger,
+    schema: z.object({ className: z.string().optional() }),
+    from: "@/components/ui/dropdown-menu",
+    childOf: ["DropdownMenuSub"],
+    defaultChildren: "Sub Menu",
+  },
+  DropdownMenuSubContent: {
+    component: DropdownMenuSubContent,
+    schema: z.object({
+      className: z.string().optional(),
+      sideOffset: z.number().optional(),
+    }),
+    from: "@/components/ui/dropdown-menu",
+    childOf: ["DropdownMenuSub"],
+    defaultChildren: [],
+  },
+
+  // ============================================
+  // TOOLTIP (TRIGGER-ANCHORED POPPER)
+  // ============================================
+  Tooltip: {
+    component: Tooltip,
+    schema: z.object({
+      defaultOpen: z.boolean().optional(),
+      open: z.boolean().optional(),
+      delayDuration: z.number().optional(),
+    }),
+    from: "@/components/ui/tooltip",
+    defaultChildren: [
+      {
+        id: "tooltip-trigger",
+        type: "TooltipTrigger",
+        name: "TooltipTrigger",
+        props: { asChild: true },
+        children: [
+          {
+            id: "tooltip-btn",
+            type: "Button",
+            name: "Button",
+            props: { variant: "outline" },
+            children: "Hover me",
+          },
+        ],
+      },
+      {
+        id: "tooltip-content",
+        type: "TooltipContent",
+        name: "TooltipContent",
+        props: { sideOffset: 4 },
+        children: "Helpful tooltip information",
+      },
+    ],
+  },
+  TooltipTrigger: {
+    component: TooltipTrigger,
+    schema: z.object({ asChild: z.boolean().optional() }),
+    from: "@/components/ui/tooltip",
+    childOf: ["Tooltip"],
+    defaultChildren: [],
+  },
+  TooltipContent: {
+    component: TooltipContent,
+    schema: z.object({
+      className: z.string().optional(),
+      sideOffset: z.number().optional(),
+      side: z.enum(["top", "right", "bottom", "left"]).optional(),
+    }),
+    from: "@/components/ui/tooltip",
+    childOf: ["Tooltip"],
+    defaultChildren: "Tooltip text",
+  },
+  TooltipProvider: {
+    component: TooltipProvider,
+    schema: z.object({ delayDuration: z.number().optional() }),
+    from: "@/components/ui/tooltip",
     defaultChildren: [],
   },
 };

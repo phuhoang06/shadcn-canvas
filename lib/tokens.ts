@@ -484,7 +484,9 @@ export type Kind =
   | "shadcnDialog"
   | "shadcnPopover"
   | "shadcnBadge"
-  | "shadcnInput";
+  | "shadcnInput"
+  | "shadcnDropdownMenu"
+  | "shadcnTooltip";
 
 export type ShadcnButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 export type ShadcnButtonSize = "default" | "sm" | "lg" | "icon";
@@ -1243,6 +1245,36 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     defLabel: "Input",
     defIcon: null,
   },
+  shadcnDropdownMenu: {
+    label: "Shadcn Dropdown",
+    noun: "Shadcnドロップダウン",
+    category: "shadcn",
+    paletteIcon: "menu_open",
+    w: 160,
+    h: 40,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Options Menu",
+    defIcon: null,
+  },
+  shadcnTooltip: {
+    label: "Shadcn Tooltip",
+    noun: "Shadcnツールチップ",
+    category: "shadcn",
+    paletteIcon: "tooltip",
+    w: 120,
+    h: 40,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Tooltip",
+    defIcon: null,
+  },
 };
 
 export const KIND_ORDER: Kind[] = [
@@ -1282,6 +1314,12 @@ export const KIND_ORDER: Kind[] = [
   "shadcnButton",
   "shadcnCard",
   "shadcnSelect",
+  "shadcnDialog",
+  "shadcnPopover",
+  "shadcnBadge",
+  "shadcnInput",
+  "shadcnDropdownMenu",
+  "shadcnTooltip",
 ];
 
 /* ---------- screen data ---------- */
@@ -1883,6 +1921,12 @@ export function makeItem(kind: Kind): Item {
   }
   if (kind === "shadcnInput") {
     it.layer = createDefaultLayer("Input");
+  }
+  if (kind === "shadcnDropdownMenu") {
+    it.layer = createDefaultLayer("DropdownMenu");
+  }
+  if (kind === "shadcnTooltip") {
+    it.layer = createDefaultLayer("Tooltip");
   }
   return it;
 }
