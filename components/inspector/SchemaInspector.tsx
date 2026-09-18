@@ -5,7 +5,7 @@ import type { Item, Palette } from "@/lib/tokens";
 import type { ComponentLayer } from "@/lib/registry/types";
 import { flattenLayers, updateLayerById, findLayerById } from "@/lib/hybrid-model";
 import { getComponentDefinition } from "@/lib/registry";
-import { Field, Section, Segmented } from "@/components/ui";
+import { Field, Section, Segmented, Toggle } from "@/components/ui";
 
 export interface SchemaInspectorProps {
   item: Item;
@@ -173,6 +173,152 @@ export function SchemaInspector({ item, onChange, palette: p }: SchemaInspectorP
                 ]}
                 value={activeProps.align ?? "center"}
                 onChange={(al) => handlePropChange("align", al)}
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* Checkbox Controls */}
+          {activeLayer.type === "Checkbox" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <Toggle
+                label="Checked"
+                on={!!activeProps.checked}
+                onChange={(v) => handlePropChange("checked", v)}
+                p={p}
+              />
+              <Toggle
+                label="Disabled"
+                on={!!activeProps.disabled}
+                onChange={(v) => handlePropChange("disabled", v)}
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* Switch Controls */}
+          {activeLayer.type === "Switch" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <Toggle
+                label="Checked"
+                on={!!activeProps.checked}
+                onChange={(v) => handlePropChange("checked", v)}
+                p={p}
+              />
+              <Toggle
+                label="Disabled"
+                on={!!activeProps.disabled}
+                onChange={(v) => handlePropChange("disabled", v)}
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* Slider Controls */}
+          {activeLayer.type === "Slider" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Min</div>
+                  <Field
+                    value={String(activeProps.min ?? 0)}
+                    onChange={(v) => handlePropChange("min", Number(v) || 0)}
+                    placeholder="0"
+                    p={p}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Max</div>
+                  <Field
+                    value={String(activeProps.max ?? 100)}
+                    onChange={(v) => handlePropChange("max", Number(v) || 100)}
+                    placeholder="100"
+                    p={p}
+                  />
+                </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Step</div>
+                  <Field
+                    value={String(activeProps.step ?? 1)}
+                    onChange={(v) => handlePropChange("step", Number(v) || 1)}
+                    placeholder="1"
+                    p={p}
+                  />
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Default Value</div>
+                  <Field
+                    value={String(activeProps.defaultValue?.[0] ?? 50)}
+                    onChange={(v) => handlePropChange("defaultValue", [Number(v) || 0])}
+                    placeholder="50"
+                    p={p}
+                  />
+                </div>
+              </div>
+              <Toggle
+                label="Disabled"
+                on={!!activeProps.disabled}
+                onChange={(v) => handlePropChange("disabled", v)}
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* RadioGroup Controls */}
+          {activeLayer.type === "RadioGroup" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Default Value</div>
+              <Field
+                value={activeProps.defaultValue ?? "option-1"}
+                onChange={(v) => handlePropChange("defaultValue", v)}
+                placeholder="option-1"
+                p={p}
+              />
+              <Toggle
+                label="Disabled"
+                on={!!activeProps.disabled}
+                onChange={(v) => handlePropChange("disabled", v)}
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* RadioGroupItem Controls */}
+          {activeLayer.type === "RadioGroupItem" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Value</div>
+              <Field
+                value={activeProps.value ?? ""}
+                onChange={(v) => handlePropChange("value", v)}
+                placeholder="e.g. option-1"
+                p={p}
+              />
+              <Toggle
+                label="Disabled"
+                on={!!activeProps.disabled}
+                onChange={(v) => handlePropChange("disabled", v)}
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* AvatarImage Controls */}
+          {activeLayer.type === "AvatarImage" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Image URL (src)</div>
+              <Field
+                value={activeProps.src ?? ""}
+                onChange={(v) => handlePropChange("src", v)}
+                placeholder="https://..."
+                p={p}
+              />
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Alt Text</div>
+              <Field
+                value={activeProps.alt ?? ""}
+                onChange={(v) => handlePropChange("alt", v)}
+                placeholder="@shadcn"
                 p={p}
               />
             </div>
