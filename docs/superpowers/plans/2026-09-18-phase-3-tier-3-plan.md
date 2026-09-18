@@ -22,9 +22,9 @@
 **Files:**
 - Modify: `package.json`
 
-- [ ] **Step 1: Xin phép cài đặt 2 packages mới:** `@radix-ui/react-accordion` và `@radix-ui/react-tabs` (lưu ý: `@radix-ui/react-dialog` cho `Sheet` đã được cài đặt từ Phase 2).
-- [ ] **Step 2: Chạy cài đặt:** `npm install @radix-ui/react-accordion @radix-ui/react-tabs`.
-- [ ] **Step 3: Commit:** `git commit -m "chore(deps): install radix accordion and tabs for phase 3 tier 3"`
+- [x] **Step 1: Xin phép cài đặt 2 packages mới:** `@radix-ui/react-accordion` và `@radix-ui/react-tabs` (lưu ý: `@radix-ui/react-dialog` cho `Sheet` đã được cài đặt từ Phase 2).
+- [x] **Step 2: Chạy cài đặt:** `npm install @radix-ui/react-accordion @radix-ui/react-tabs`.
+- [x] **Step 3: Commit:** `git commit -m "chore(deps): install radix accordion and tabs for phase 3 tier 3"`
 
 ---
 
@@ -37,20 +37,20 @@
 - Create: `components/ui/alert.tsx`
 - Create: `components/ui/table.tsx`
 
-- [ ] **Step 1: Port `components/ui/sheet.tsx`:**
+- [x] **Step 1: Port `components/ui/sheet.tsx`:**
   - Tích hợp `isFrame?: boolean` cho `SheetContent`.
   - Định nghĩa hàm `getSheetContentClassNames(side, isFrame)` trích xuất từ cva `sheetVariants`, loại bỏ động `fixed`, `inset-`, `z-50` khi `isFrame=true`.
   - Cung cấp `forceMount={isFrame ? true : undefined}` và loại bỏ `SheetPortal`/`SheetOverlay` ở Edit Mode.
-- [ ] **Step 2: Port `components/ui/accordion.tsx`:**
+- [x] **Step 2: Port `components/ui/accordion.tsx`:**
   - `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent`.
-- [ ] **Step 3: Port `components/ui/tabs.tsx`:**
+- [x] **Step 3: Port `components/ui/tabs.tsx`:**
   - `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent`.
-- [ ] **Step 4: Port `components/ui/alert.tsx`:**
+- [x] **Step 4: Port `components/ui/alert.tsx`:**
   - `Alert`, `AlertTitle`, `AlertDescription` với variant `default` và `destructive`.
-- [ ] **Step 5: Port `components/ui/table.tsx`:**
+- [x] **Step 5: Port `components/ui/table.tsx`:**
   - `Table`, `TableHeader`, `TableBody`, `TableFooter`, `TableRow`, `TableHead`, `TableCell`, `TableCaption`.
-- [ ] **Step 6: Kiểm tra typecheck:** `npm run typecheck`.
-- [ ] **Step 7: Commit:** `git commit -m "feat(components): port tier 3 layout primitives (sheet, accordion, tabs, alert, table)"`
+- [x] **Step 6: Kiểm tra typecheck:** `npm run typecheck`.
+- [x] **Step 7: Commit:** `git commit -m "feat(components): port tier 3 layout primitives (sheet, accordion, tabs, alert, table)"`
 
 ---
 
@@ -60,15 +60,15 @@
 - Modify: `lib/registry/definitions.ts`
 - Modify: `lib/tokens.ts`
 
-- [ ] **Step 1: Đăng ký Schemas & Default Children trong `lib/registry/definitions.ts`:**
+- [x] **Step 1: Đăng ký Schemas & Default Children trong `lib/registry/definitions.ts`:**
   - `Sheet`: `side` (top/bottom/left/right), `defaultOpen`, `open`. Default children: `SheetTrigger` + `SheetContent` (kèm Header, Title, Description, Footer, Close).
   - `Accordion`: `type` ("single" | "multiple"), `collapsible`, `defaultValue`. Default children: 2 `AccordionItem` (Item 1 & Item 2 kèm Trigger + Content).
   - `Tabs`: `defaultValue`. Default children: `TabsList` (2 `TabsTrigger`) + 2 `TabsContent`.
   - `Alert`: `variant` ("default" | "destructive"). Default children: `AlertTitle` + `AlertDescription`.
   - `Table`: Default children: `TableHeader` (Row + Head) + `TableBody` (Row + Cells).
-- [ ] **Step 2: Cập nhật Tokens trong `lib/tokens.ts`:**
+- [x] **Step 2: Cập nhật Tokens trong `lib/tokens.ts`:**
   - Bổ sung `shadcnSheet`, `shadcnAccordion`, `shadcnTabs`, `shadcnAlert`, `shadcnTable` vào `Kind`, `KIND_SPEC`, `KIND_ORDER`, và `makeItem`.
-- [ ] **Step 3: Commit:** `git commit -m "feat(registry): register definitions and tokens for tier 3 layout components"`
+- [x] **Step 3: Commit:** `git commit -m "feat(registry): register definitions and tokens for tier 3 layout components"`
 
 ---
 
@@ -79,13 +79,13 @@
 - Modify: `lib/codegen.ts`
 - Modify: `components/inspector/SchemaInspector.tsx`
 
-- [ ] **Step 1: Hierarchical Renderer:** Bổ sung nhánh render đệ quy cho cả 5 nhóm component trong `HierarchicalNodeRenderer.tsx` với đầy đủ xử lý `interactive`, `renderMode` ("edit" vs "preview" cho Sheet), `selectedLayerId`.
-- [ ] **Step 2: AST Codegen:**
+- [x] **Step 1: Hierarchical Renderer:** Bổ sung nhánh render đệ quy cho cả 5 nhóm component trong `HierarchicalNodeRenderer.tsx` với đầy đủ xử lý `interactive`, `renderMode` ("edit" vs "preview" cho Sheet), `selectedLayerId`.
+- [x] **Step 2: AST Codegen:**
   - Cập nhật `COMPONENT_MODULE_MAP` cho tất cả các sub-components mới trong `lib/codegen.ts`.
   - Áp dụng chuẩn hóa uncontrolled invariant: map `value` -> `defaultValue` cho `Accordion` và `Tabs`, map `open` -> `defaultOpen` cho `Sheet`.
-- [ ] **Step 3: SchemaInspector:** Bổ sung trường cấu hình cho `Sheet` (chọn hướng `side`, toggle mode edit/preview), `Accordion` (defaultValue, collapsible), `Tabs` (defaultValue), `Alert` (variant).
-- [ ] **Step 4: Kiểm tra build:** `npm run typecheck` và `npm run build`.
-- [ ] **Step 5: Commit:** `git commit -m "feat(renderers): add recursive rendering, uncontrolled codegen and inspector for tier 3"`
+- [x] **Step 3: SchemaInspector:** Bổ sung trường cấu hình cho `Sheet` (chọn hướng `side`, toggle mode edit/preview), `Accordion` (defaultValue, collapsible), `Tabs` (defaultValue), `Alert` (variant).
+- [x] **Step 4: Kiểm tra build:** `npm run typecheck` và `npm run build`.
+- [x] **Step 5: Commit:** `git commit -m "feat(renderers): add recursive rendering, uncontrolled codegen and inspector for tier 3"`
 
 ---
 
@@ -95,18 +95,18 @@
 - Test via Chrome DevTools Protocol (CDP)
 - Create artifact: `tier-3-layout-primitives-evidence.md`
 
-- [ ] **Step 1: Kiểm chứng Sheet Multi-Mode:**
+- [x] **Step 1: Kiểm chứng Sheet Multi-Mode:**
   - Đối chứng computedStyle side-by-side của `SheetContent` ở Edit Mode (`isFrame=true`) vs Preview Mode (`isFrame=false`, open).
   - Kiểm tra các hướng `side="right"` và `side="bottom"`.
-- [ ] **Step 2: Kiểm chứng Accordion Interactivity:**
+- [x] **Step 2: Kiểm chứng Accordion Interactivity:**
   - Click AccordionTrigger Item 2 via CDP: xác nhận panel 2 mở ra (`data-state="open"`), panel 1 đóng lại (`data-state="closed"`).
-- [ ] **Step 3: Kiểm chứng Tabs Switching:**
+- [x] **Step 3: Kiểm chứng Tabs Switching:**
   - Click TabsTrigger Tab 2 via CDP: xác nhận TabsContent 2 hiển thị và TabsContent 1 ẩn đi.
-- [ ] **Step 4: Kiểm chứng Alert & Table:**
+- [x] **Step 4: Kiểm chứng Alert & Table:**
   - Render Alert (default & destructive) và Table đầy đủ dữ liệu hàng/cột.
-- [ ] **Step 5: Chụp ảnh màn hình đối chứng và xuất TSX Export:**
+- [x] **Step 5: Chụp ảnh màn hình đối chứng và xuất TSX Export:**
   - Xác nhận TSX xuất chuẩn `defaultValue`, `defaultOpen`, không rò rỉ canvas props.
-- [ ] **Step 6: Commit tài liệu:** `git commit -m "test(cdp): verify tier 3 layout primitives interactivity and uncontrolled codegen"`
+- [x] **Step 6: Commit tài liệu:** `git commit -m "test(cdp): verify tier 3 layout primitives interactivity and uncontrolled codegen"`
 
 ---
 
@@ -115,6 +115,6 @@
 **Files:**
 - Create: `docs/phase-3-tier-3-report.md`
 
-- [ ] **Step 1: Soạn thảo báo cáo nghiệm thu `docs/phase-3-tier-3-report.md`.**
-- [ ] **Step 2: Chạy full verification:** `npm run typecheck && npm run build` đạt exit code 0.
-- [ ] **Step 3: Commit:** `git commit -m "docs(phase3): add tier-3 evaluation report and layout primitives sign-off"`
+- [x] **Step 1: Soạn thảo báo cáo nghiệm thu `docs/phase-3-tier-3-report.md`.**
+- [x] **Step 2: Chạy full verification:** `npm run typecheck && npm run build` đạt exit code 0.
+- [x] **Step 3: Commit:** `git commit -m "docs(phase3): add tier-3 evaluation report and layout primitives sign-off"`
