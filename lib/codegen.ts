@@ -62,6 +62,21 @@ const COMPONENT_MODULE_MAP: Record<string, string> = {
   Input: "@/components/ui/input",
   Textarea: "@/components/ui/textarea",
   Separator: "@/components/ui/separator",
+  DropdownMenu: "@/components/ui/dropdown-menu",
+  DropdownMenuTrigger: "@/components/ui/dropdown-menu",
+  DropdownMenuContent: "@/components/ui/dropdown-menu",
+  DropdownMenuItem: "@/components/ui/dropdown-menu",
+  DropdownMenuLabel: "@/components/ui/dropdown-menu",
+  DropdownMenuSeparator: "@/components/ui/dropdown-menu",
+  DropdownMenuShortcut: "@/components/ui/dropdown-menu",
+  DropdownMenuGroup: "@/components/ui/dropdown-menu",
+  DropdownMenuSub: "@/components/ui/dropdown-menu",
+  DropdownMenuSubTrigger: "@/components/ui/dropdown-menu",
+  DropdownMenuSubContent: "@/components/ui/dropdown-menu",
+  Tooltip: "@/components/ui/tooltip",
+  TooltipTrigger: "@/components/ui/tooltip",
+  TooltipContent: "@/components/ui/tooltip",
+  TooltipProvider: "@/components/ui/tooltip",
 };
 
 /**

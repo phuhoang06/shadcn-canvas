@@ -34,6 +34,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuGroup,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { usePopperZoom } from "./PopperZoomAdapter";
 import { cn } from "@/lib/utils";
 
@@ -358,6 +376,118 @@ export function HierarchicalNodeRenderer({
     return <Separator orientation={props.orientation ?? "horizontal"} className={props.className} />;
   }
 
+  // 8. DROPDOWN MENU (VỚI NESTED SUBMENUS & UNIVERSAL POPPER INVARIANT)
+  if (layer.type === "DropdownMenu") {
+    return (
+      <DropdownMenu defaultOpen={props.defaultOpen} open={props.open}>
+        {renderChildren()}
+      </DropdownMenu>
+    );
+  }
+  if (layer.type === "DropdownMenuTrigger") {
+    const singleChild = Array.isArray(layer.children) && layer.children.length > 0 ? layer.children[0] : null;
+    return (
+      <DropdownMenuTrigger asChild>
+        {singleChild ? (
+          <HierarchicalNodeRenderer
+            key={singleChild.id}
+            layer={singleChild}
+            interactive={interactive}
+            renderMode={renderMode}
+            selectedLayerId={selectedLayerId}
+            onSelectLayer={onSelectLayer}
+          />
+        ) : (
+          <Button variant="outline">Options Menu</Button>
+        )}
+      </DropdownMenuTrigger>
+    );
+  }
+  if (layer.type === "DropdownMenuContent") {
+    return <WrappedDropdownMenuContent layer={layer}>{renderChildren()}</WrappedDropdownMenuContent>;
+  }
+  if (layer.type === "DropdownMenuItem") {
+    return (
+      <DropdownMenuItem
+        disabled={props.disabled}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </DropdownMenuItem>
+    );
+  }
+  if (layer.type === "DropdownMenuLabel") {
+    return (
+      <DropdownMenuLabel className={props.className} onClick={handleLayerClick}>
+        {renderChildren()}
+      </DropdownMenuLabel>
+    );
+  }
+  if (layer.type === "DropdownMenuSeparator") {
+    return <DropdownMenuSeparator className={props.className} />;
+  }
+  if (layer.type === "DropdownMenuGroup") {
+    return <DropdownMenuGroup className={props.className}>{renderChildren()}</DropdownMenuGroup>;
+  }
+  if (layer.type === "DropdownMenuSub") {
+    return (
+      <DropdownMenuSub defaultOpen={props.defaultOpen} open={props.open}>
+        {renderChildren()}
+      </DropdownMenuSub>
+    );
+  }
+  if (layer.type === "DropdownMenuSubTrigger") {
+    return (
+      <DropdownMenuSubTrigger
+        inset={props.inset}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </DropdownMenuSubTrigger>
+    );
+  }
+  if (layer.type === "DropdownMenuSubContent") {
+    return <WrappedDropdownMenuSubContent layer={layer}>{renderChildren()}</WrappedDropdownMenuSubContent>;
+  }
+
+  // 9. TOOLTIP (VỚI UNIVERSAL POPPER INVARIANT)
+  if (layer.type === "TooltipProvider") {
+    return <TooltipProvider delayDuration={props.delayDuration}>{renderChildren()}</TooltipProvider>;
+  }
+  if (layer.type === "Tooltip") {
+    return (
+      <TooltipProvider>
+        <Tooltip defaultOpen={props.defaultOpen} open={props.open}>
+          {renderChildren()}
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+  if (layer.type === "TooltipTrigger") {
+    const singleChild = Array.isArray(layer.children) && layer.children.length > 0 ? layer.children[0] : null;
+    return (
+      <TooltipTrigger asChild>
+        {singleChild ? (
+          <HierarchicalNodeRenderer
+            key={singleChild.id}
+            layer={singleChild}
+            interactive={interactive}
+            renderMode={renderMode}
+            selectedLayerId={selectedLayerId}
+            onSelectLayer={onSelectLayer}
+          />
+        ) : (
+          <Button variant="outline">Hover</Button>
+        )}
+      </TooltipTrigger>
+    );
+  }
+  if (layer.type === "TooltipContent") {
+    return <WrappedTooltipContent layer={layer}>{renderChildren()}</WrappedTooltipContent>;
+  }
+
   // Fallback cho text hoặc HTML tag
   return <span onClick={handleLayerClick}>{renderChildren()}</span>;
 }
@@ -387,5 +517,88 @@ function WrappedPopoverContent({
     >
       {children}
     </PopoverContent>
+  );
+}
+
+/**
+ * Wrapper DropdownMenuContent ứng dụng Universal Popper Invariant (Tầng 1)
+ */
+function WrappedDropdownMenuContent({
+  layer,
+  children,
+}: {
+  layer: ComponentLayer;
+  children: React.ReactNode;
+}) {
+  const props = (layer.props || {}) as Record<string, any>;
+  const popper = usePopperZoom({
+    sideOffset: props.sideOffset,
+    alignOffset: props.alignOffset,
+  });
+
+  return (
+    <DropdownMenuContent
+      align={props.align ?? "start"}
+      sideOffset={popper.sideOffset}
+      style={popper.style}
+      className={props.className}
+    >
+      {children}
+    </DropdownMenuContent>
+  );
+}
+
+/**
+ * Wrapper DropdownMenuSubContent ứng dụng Universal Popper Invariant (Tầng 2 - Nested Portal)
+ */
+function WrappedDropdownMenuSubContent({
+  layer,
+  children,
+}: {
+  layer: ComponentLayer;
+  children: React.ReactNode;
+}) {
+  const props = (layer.props || {}) as Record<string, any>;
+  const popper = usePopperZoom({
+    sideOffset: props.sideOffset,
+    alignOffset: props.alignOffset,
+  });
+
+  return (
+    <DropdownMenuSubContent
+      sideOffset={popper.sideOffset}
+      style={popper.style}
+      className={props.className}
+    >
+      {children}
+    </DropdownMenuSubContent>
+  );
+}
+
+/**
+ * Wrapper TooltipContent ứng dụng Universal Popper Invariant
+ */
+function WrappedTooltipContent({
+  layer,
+  children,
+}: {
+  layer: ComponentLayer;
+  children: React.ReactNode;
+}) {
+  const props = (layer.props || {}) as Record<string, any>;
+  const popper = usePopperZoom({
+    sideOffset: props.sideOffset,
+    alignOffset: props.alignOffset,
+  });
+
+  return (
+    <TooltipContent
+      side={props.side ?? "top"}
+      sideOffset={popper.sideOffset}
+      style={popper.style}
+      className={props.className}
+    >
+      {children}
+    </TooltipContent>
   );
 }
