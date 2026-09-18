@@ -486,7 +486,13 @@ export type Kind =
   | "shadcnBadge"
   | "shadcnInput"
   | "shadcnDropdownMenu"
-  | "shadcnTooltip";
+  | "shadcnTooltip"
+  | "shadcnCheckbox"
+  | "shadcnSwitch"
+  | "shadcnSlider"
+  | "shadcnRadioGroup"
+  | "shadcnLabel"
+  | "shadcnAvatar";
 
 export type ShadcnButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 export type ShadcnButtonSize = "default" | "sm" | "lg" | "icon";
@@ -1275,6 +1281,96 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     defLabel: "Tooltip",
     defIcon: null,
   },
+  shadcnCheckbox: {
+    label: "Shadcn Checkbox",
+    noun: "Shadcnチェックボックス",
+    category: "shadcn",
+    paletteIcon: "check_box",
+    w: 140,
+    h: 32,
+    radius: 4,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Accept terms",
+    defIcon: null,
+  },
+  shadcnSwitch: {
+    label: "Shadcn Switch",
+    noun: "Shadcnスイッチ",
+    category: "shadcn",
+    paletteIcon: "toggle_on",
+    w: 120,
+    h: 32,
+    radius: 16,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Airplane Mode",
+    defIcon: null,
+  },
+  shadcnSlider: {
+    label: "Shadcn Slider",
+    noun: "Shadcnスライダー",
+    category: "shadcn",
+    paletteIcon: "linear_scale",
+    w: 200,
+    h: 32,
+    radius: 4,
+    hasVariant: false,
+    hasLabel: false,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "",
+    defIcon: null,
+  },
+  shadcnRadioGroup: {
+    label: "Shadcn RadioGroup",
+    noun: "Shadcnラジオグループ",
+    category: "shadcn",
+    paletteIcon: "radio_button_checked",
+    w: 160,
+    h: 64,
+    radius: 4,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Radio Options",
+    defIcon: null,
+  },
+  shadcnLabel: {
+    label: "Shadcn Label",
+    noun: "Shadcnラベル",
+    category: "shadcn",
+    paletteIcon: "label",
+    w: 100,
+    h: 24,
+    radius: 0,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Label",
+    defIcon: null,
+  },
+  shadcnAvatar: {
+    label: "Shadcn Avatar",
+    noun: "Shadcnアバター",
+    category: "shadcn",
+    paletteIcon: "account_circle",
+    w: 48,
+    h: 48,
+    radius: 24,
+    hasVariant: false,
+    hasLabel: false,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "",
+    defIcon: null,
+  },
 };
 
 export const KIND_ORDER: Kind[] = [
@@ -1320,6 +1416,12 @@ export const KIND_ORDER: Kind[] = [
   "shadcnInput",
   "shadcnDropdownMenu",
   "shadcnTooltip",
+  "shadcnCheckbox",
+  "shadcnSwitch",
+  "shadcnSlider",
+  "shadcnRadioGroup",
+  "shadcnLabel",
+  "shadcnAvatar",
 ];
 
 /* ---------- screen data ---------- */
@@ -1927,6 +2029,24 @@ export function makeItem(kind: Kind): Item {
   }
   if (kind === "shadcnTooltip") {
     it.layer = createDefaultLayer("Tooltip");
+  }
+  if (kind === "shadcnCheckbox") {
+    it.layer = createDefaultLayer("Checkbox");
+  }
+  if (kind === "shadcnSwitch") {
+    it.layer = createDefaultLayer("Switch");
+  }
+  if (kind === "shadcnSlider") {
+    it.layer = createDefaultLayer("Slider");
+  }
+  if (kind === "shadcnRadioGroup") {
+    it.layer = createDefaultLayer("RadioGroup");
+  }
+  if (kind === "shadcnLabel") {
+    it.layer = createDefaultLayer("Label");
+  }
+  if (kind === "shadcnAvatar") {
+    it.layer = createDefaultLayer("Avatar");
   }
   return it;
 }

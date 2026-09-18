@@ -55,6 +55,12 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 export const componentRegistry: ComponentRegistry = {
   // ============================================
@@ -703,5 +709,132 @@ export const componentRegistry: ComponentRegistry = {
     schema: z.object({ delayDuration: z.number().optional() }),
     from: "@/components/ui/tooltip",
     defaultChildren: [],
+  },
+
+  // ============================================
+  // FORM CONTROLS (PHASE 3 TIER 2)
+  // ============================================
+  Checkbox: {
+    component: Checkbox,
+    schema: z.object({
+      checked: z.boolean().optional(),
+      defaultChecked: z.boolean().optional(),
+      disabled: z.boolean().optional(),
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/checkbox",
+  },
+  Switch: {
+    component: Switch,
+    schema: z.object({
+      checked: z.boolean().optional(),
+      defaultChecked: z.boolean().optional(),
+      disabled: z.boolean().optional(),
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/switch",
+  },
+  Slider: {
+    component: Slider,
+    schema: z.object({
+      defaultValue: z.array(z.coerce.number()).optional(),
+      min: z.coerce.number().optional(),
+      max: z.coerce.number().optional(),
+      step: z.coerce.number().optional(),
+      disabled: z.boolean().optional(),
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/slider",
+  },
+  RadioGroup: {
+    component: RadioGroup,
+    schema: z.object({
+      defaultValue: z.string().optional(),
+      disabled: z.boolean().optional(),
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/radio-group",
+    defaultChildren: [
+      {
+        id: "radio-item-1",
+        type: "RadioGroupItem",
+        name: "RadioGroupItem",
+        props: { value: "option-1" },
+        children: [],
+      },
+      {
+        id: "radio-item-2",
+        type: "RadioGroupItem",
+        name: "RadioGroupItem",
+        props: { value: "option-2" },
+        children: [],
+      },
+    ],
+  },
+  RadioGroupItem: {
+    component: RadioGroupItem,
+    schema: z.object({
+      value: z.string(),
+      disabled: z.boolean().optional(),
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/radio-group",
+    childOf: ["RadioGroup"],
+    defaultChildren: [],
+  },
+  Label: {
+    component: Label,
+    schema: z.object({
+      htmlFor: z.string().optional(),
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/label",
+    defaultChildren: "Label Text",
+  },
+  Avatar: {
+    component: Avatar,
+    schema: z.object({
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/avatar",
+    defaultChildren: [
+      {
+        id: "avatar-img",
+        type: "AvatarImage",
+        name: "AvatarImage",
+        props: {
+          src: "https://github.com/shadcn.png",
+          alt: "@shadcn",
+        },
+        children: [],
+      },
+      {
+        id: "avatar-fallback",
+        type: "AvatarFallback",
+        name: "AvatarFallback",
+        props: {},
+        children: "CN",
+      },
+    ],
+  },
+  AvatarImage: {
+    component: AvatarImage,
+    schema: z.object({
+      src: z.string(),
+      alt: z.string().optional(),
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/avatar",
+    childOf: ["Avatar"],
+    defaultChildren: [],
+  },
+  AvatarFallback: {
+    component: AvatarFallback,
+    schema: z.object({
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/avatar",
+    childOf: ["Avatar"],
+    defaultChildren: "CN",
   },
 };
