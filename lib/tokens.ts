@@ -492,7 +492,12 @@ export type Kind =
   | "shadcnSlider"
   | "shadcnRadioGroup"
   | "shadcnLabel"
-  | "shadcnAvatar";
+  | "shadcnAvatar"
+  | "shadcnSheet"
+  | "shadcnAccordion"
+  | "shadcnTabs"
+  | "shadcnAlert"
+  | "shadcnTable";
 
 export type ShadcnButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 export type ShadcnButtonSize = "default" | "sm" | "lg" | "icon";
@@ -1371,6 +1376,81 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     defLabel: "",
     defIcon: null,
   },
+  shadcnSheet: {
+    label: "Shadcn Sheet",
+    noun: "Shadcnシート",
+    category: "shadcn",
+    paletteIcon: "side_navigation",
+    w: 320,
+    h: 400,
+    radius: 8,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Sheet Drawer",
+    defIcon: null,
+  },
+  shadcnAccordion: {
+    label: "Shadcn Accordion",
+    noun: "Shadcnアコーディオン",
+    category: "shadcn",
+    paletteIcon: "expand_circle_down",
+    w: 280,
+    h: 160,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Accordion FAQ",
+    defIcon: null,
+  },
+  shadcnTabs: {
+    label: "Shadcn Tabs",
+    noun: "Shadcnタブ",
+    category: "shadcn",
+    paletteIcon: "tab",
+    w: 300,
+    h: 140,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Tabs View",
+    defIcon: null,
+  },
+  shadcnAlert: {
+    label: "Shadcn Alert",
+    noun: "Shadcnアラート",
+    category: "shadcn",
+    paletteIcon: "warning",
+    w: 320,
+    h: 80,
+    radius: 8,
+    hasVariant: true,
+    hasLabel: true,
+    hasSupporting: true,
+    hasIcon: false,
+    defLabel: "Notice",
+    defIcon: null,
+  },
+  shadcnTable: {
+    label: "Shadcn Table",
+    noun: "Shadcnテーブル",
+    category: "shadcn",
+    paletteIcon: "table_chart",
+    w: 340,
+    h: 180,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: true,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "Invoices Table",
+    defIcon: null,
+  },
 };
 
 export const KIND_ORDER: Kind[] = [
@@ -1422,6 +1502,11 @@ export const KIND_ORDER: Kind[] = [
   "shadcnRadioGroup",
   "shadcnLabel",
   "shadcnAvatar",
+  "shadcnSheet",
+  "shadcnAccordion",
+  "shadcnTabs",
+  "shadcnAlert",
+  "shadcnTable",
 ];
 
 /* ---------- screen data ---------- */
@@ -2047,6 +2132,21 @@ export function makeItem(kind: Kind): Item {
   }
   if (kind === "shadcnAvatar") {
     it.layer = createDefaultLayer("Avatar");
+  }
+  if (kind === "shadcnSheet") {
+    it.layer = createDefaultLayer("Sheet");
+  }
+  if (kind === "shadcnAccordion") {
+    it.layer = createDefaultLayer("Accordion");
+  }
+  if (kind === "shadcnTabs") {
+    it.layer = createDefaultLayer("Tabs");
+  }
+  if (kind === "shadcnAlert") {
+    it.layer = createDefaultLayer("Alert");
+  }
+  if (kind === "shadcnTable") {
+    it.layer = createDefaultLayer("Table");
   }
   return it;
 }
