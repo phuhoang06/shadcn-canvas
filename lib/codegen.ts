@@ -86,6 +86,33 @@ const COMPONENT_MODULE_MAP: Record<string, string> = {
   Avatar: "@/components/ui/avatar",
   AvatarImage: "@/components/ui/avatar",
   AvatarFallback: "@/components/ui/avatar",
+  Sheet: "@/components/ui/sheet",
+  SheetTrigger: "@/components/ui/sheet",
+  SheetContent: "@/components/ui/sheet",
+  SheetHeader: "@/components/ui/sheet",
+  SheetFooter: "@/components/ui/sheet",
+  SheetTitle: "@/components/ui/sheet",
+  SheetDescription: "@/components/ui/sheet",
+  SheetClose: "@/components/ui/sheet",
+  Accordion: "@/components/ui/accordion",
+  AccordionItem: "@/components/ui/accordion",
+  AccordionTrigger: "@/components/ui/accordion",
+  AccordionContent: "@/components/ui/accordion",
+  Tabs: "@/components/ui/tabs",
+  TabsList: "@/components/ui/tabs",
+  TabsTrigger: "@/components/ui/tabs",
+  TabsContent: "@/components/ui/tabs",
+  Alert: "@/components/ui/alert",
+  AlertTitle: "@/components/ui/alert",
+  AlertDescription: "@/components/ui/alert",
+  Table: "@/components/ui/table",
+  TableHeader: "@/components/ui/table",
+  TableBody: "@/components/ui/table",
+  TableFooter: "@/components/ui/table",
+  TableRow: "@/components/ui/table",
+  TableHead: "@/components/ui/table",
+  TableCell: "@/components/ui/table",
+  TableCaption: "@/components/ui/table",
 };
 
 /**
@@ -110,6 +137,9 @@ export function serializeLayer(layer: ComponentLayer, indent: number = 6): strin
   // Lọc và format props (Mapping controlled props sang uncontrolled default* props cho standalone code)
   const normalizedProps: Record<string, any> = { ...(layer.props || {}) };
 
+  // Loại bỏ bất kỳ thuộc tính runtime canvas nào nếu có
+  delete normalizedProps.isFrame;
+
   // Checkbox & Switch: map 'checked' sang 'defaultChecked' để code standalone tương tác được
   if (type === "Checkbox" || type === "Switch") {
     if ("checked" in normalizedProps && !("defaultChecked" in normalizedProps)) {
@@ -118,12 +148,44 @@ export function serializeLayer(layer: ComponentLayer, indent: number = 6): strin
     delete normalizedProps.checked;
   }
 
-  // Dialog: map 'open' sang 'defaultOpen'
-  if (type === "Dialog") {
+  // Dialog & Sheet: map 'open' sang 'defaultOpen'
+  if (type === "Dialog" || type === "Sheet") {
     if ("open" in normalizedProps && !("defaultOpen" in normalizedProps)) {
       normalizedProps.defaultOpen = normalizedProps.open;
     }
     delete normalizedProps.open;
+  }
+
+  // Tabs: map 'value' sang 'defaultValue'
+  if (type === "Tabs") {
+    if ("value" in normalizedProps && !("defaultValue" in normalizedProps)) {
+      normalizedProps.defaultValue = normalizedProps.value;
+    }
+    delete normalizedProps.value;
+  }
+
+  // Accordion: type-aware normalization (single vs multiple)
+  if (type === "Accordion") {
+    const accType = normalizedProps.type ?? "single";
+    if ("value" in normalizedProps && !("defaultValue" in normalizedProps)) {
+      normalizedProps.defaultValue = normalizedProps.value;
+    }
+    delete normalizedProps.value;
+
+    if (accType === "multiple") {
+      if (normalizedProps.defaultValue !== undefined) {
+        if (typeof normalizedProps.defaultValue === "string") {
+          normalizedProps.defaultValue = normalizedProps.defaultValue ? [normalizedProps.defaultValue] : [];
+        } else if (!Array.isArray(normalizedProps.defaultValue)) {
+          normalizedProps.defaultValue = [];
+        }
+      }
+    } else {
+      // type === "single"
+      if (Array.isArray(normalizedProps.defaultValue)) {
+        normalizedProps.defaultValue = normalizedProps.defaultValue[0] ?? "";
+      }
+    }
   }
 
   const propEntries = Object.entries(normalizedProps).filter(([k, v]) => {

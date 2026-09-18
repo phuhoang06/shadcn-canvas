@@ -58,6 +58,43 @@ import { Slider } from "@/components/ui/slider";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetFooter,
+  SheetTitle,
+  SheetDescription,
+  SheetClose,
+} from "@/components/ui/sheet";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@/components/ui/tabs";
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from "@/components/ui/alert";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableCaption,
+} from "@/components/ui/table";
 import { usePopperZoom } from "./PopperZoomAdapter";
 import { cn } from "@/lib/utils";
 
@@ -599,6 +636,282 @@ export function HierarchicalNodeRenderer({
         {renderChildren()}
       </AvatarFallback>
     );
+  }
+
+  // 16. SHEET (MULTI-MODE RENDERING WITH UNWRAPPED PRIMITIVE FRAME)
+  if (layer.type === "Sheet") {
+    if (renderMode === "edit") {
+      return (
+        <Sheet open={false}>
+          <div
+            className={cn(
+              "rounded-lg border-2 border-dashed border-emerald-300 bg-emerald-50/10 p-4 shadow-sm w-full",
+              isSelected && "ring-2 ring-emerald-500"
+            )}
+            onClick={handleLayerClick}
+          >
+            <div className="flex items-center justify-between mb-3 border-b pb-2 border-emerald-100">
+              <span className="text-xs font-bold text-emerald-600 uppercase flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Sheet [Edit Mode]
+              </span>
+              <span className="text-[10px] text-slate-400 font-mono">Inline Sub-Canvas Artboard</span>
+            </div>
+            <div className="space-y-3">{renderChildren()}</div>
+          </div>
+        </Sheet>
+      );
+    }
+
+    return (
+      <Sheet defaultOpen={props.defaultOpen} open={props.open}>
+        {renderChildren()}
+      </Sheet>
+    );
+  }
+  if (layer.type === "SheetTrigger") {
+    const singleChild = Array.isArray(layer.children) && layer.children.length > 0 ? layer.children[0] : null;
+    return (
+      <SheetTrigger asChild>
+        {singleChild ? (
+          <HierarchicalNodeRenderer
+            key={singleChild.id}
+            layer={singleChild}
+            interactive={interactive}
+            renderMode={renderMode}
+            selectedLayerId={selectedLayerId}
+            onSelectLayer={onSelectLayer}
+          />
+        ) : (
+          <Button variant="outline">Open Sheet</Button>
+        )}
+      </SheetTrigger>
+    );
+  }
+  if (layer.type === "SheetContent") {
+    return (
+      <SheetContent
+        side={props.side ?? "right"}
+        isFrame={renderMode === "edit"}
+        className={props.className}
+      >
+        {renderChildren()}
+      </SheetContent>
+    );
+  }
+  if (layer.type === "SheetHeader") {
+    return <SheetHeader className={props.className}>{renderChildren()}</SheetHeader>;
+  }
+  if (layer.type === "SheetTitle") {
+    return <SheetTitle className={props.className}>{renderChildren()}</SheetTitle>;
+  }
+  if (layer.type === "SheetDescription") {
+    return <SheetDescription className={props.className}>{renderChildren()}</SheetDescription>;
+  }
+  if (layer.type === "SheetFooter") {
+    return <SheetFooter className={props.className}>{renderChildren()}</SheetFooter>;
+  }
+  if (layer.type === "SheetClose") {
+    const singleChild = Array.isArray(layer.children) && layer.children.length > 0 ? layer.children[0] : null;
+    return (
+      <SheetClose asChild>
+        {singleChild ? (
+          <HierarchicalNodeRenderer
+            key={singleChild.id}
+            layer={singleChild}
+            interactive={interactive}
+            renderMode={renderMode}
+            selectedLayerId={selectedLayerId}
+            onSelectLayer={onSelectLayer}
+          />
+        ) : (
+          <Button variant="outline">Close</Button>
+        )}
+      </SheetClose>
+    );
+  }
+
+  // 17. ACCORDION
+  if (layer.type === "Accordion") {
+    const accType = props.type === "multiple" ? "multiple" : "single";
+    if (accType === "multiple") {
+      const defVal = Array.isArray(props.defaultValue)
+        ? props.defaultValue
+        : typeof props.defaultValue === "string" && props.defaultValue
+        ? [props.defaultValue]
+        : undefined;
+      return (
+        <Accordion
+          type="multiple"
+          defaultValue={defVal}
+          className={cn("w-full", props.className, isSelected && "ring-2 ring-blue-500")}
+          onClick={handleLayerClick}
+        >
+          {renderChildren()}
+        </Accordion>
+      );
+    }
+    return (
+      <Accordion
+        type="single"
+        collapsible={props.collapsible ?? true}
+        defaultValue={
+          typeof props.defaultValue === "string"
+            ? props.defaultValue
+            : Array.isArray(props.defaultValue)
+            ? props.defaultValue[0]
+            : "item-1"
+        }
+        className={cn("w-full", props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </Accordion>
+    );
+  }
+  if (layer.type === "AccordionItem") {
+    return (
+      <AccordionItem
+        value={props.value ?? "item-1"}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </AccordionItem>
+    );
+  }
+  if (layer.type === "AccordionTrigger") {
+    return (
+      <AccordionTrigger
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </AccordionTrigger>
+    );
+  }
+  if (layer.type === "AccordionContent") {
+    return (
+      <AccordionContent
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </AccordionContent>
+    );
+  }
+
+  // 18. TABS
+  if (layer.type === "Tabs") {
+    return (
+      <Tabs
+        defaultValue={props.defaultValue ?? "account"}
+        className={cn("w-full", props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </Tabs>
+    );
+  }
+  if (layer.type === "TabsList") {
+    return (
+      <TabsList
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </TabsList>
+    );
+  }
+  if (layer.type === "TabsTrigger") {
+    return (
+      <TabsTrigger
+        value={props.value ?? "tab"}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </TabsTrigger>
+    );
+  }
+  if (layer.type === "TabsContent") {
+    return (
+      <TabsContent
+        value={props.value ?? "tab"}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </TabsContent>
+    );
+  }
+
+  // 19. ALERT
+  if (layer.type === "Alert") {
+    return (
+      <Alert
+        variant={props.variant ?? "default"}
+        className={cn("w-full", props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </Alert>
+    );
+  }
+  if (layer.type === "AlertTitle") {
+    return (
+      <AlertTitle
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </AlertTitle>
+    );
+  }
+  if (layer.type === "AlertDescription") {
+    return (
+      <AlertDescription
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </AlertDescription>
+    );
+  }
+
+  // 20. TABLE
+  if (layer.type === "Table") {
+    return (
+      <Table
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </Table>
+    );
+  }
+  if (layer.type === "TableHeader") {
+    return <TableHeader className={props.className} onClick={handleLayerClick}>{renderChildren()}</TableHeader>;
+  }
+  if (layer.type === "TableBody") {
+    return <TableBody className={props.className} onClick={handleLayerClick}>{renderChildren()}</TableBody>;
+  }
+  if (layer.type === "TableFooter") {
+    return <TableFooter className={props.className} onClick={handleLayerClick}>{renderChildren()}</TableFooter>;
+  }
+  if (layer.type === "TableRow") {
+    return <TableRow className={props.className} onClick={handleLayerClick}>{renderChildren()}</TableRow>;
+  }
+  if (layer.type === "TableHead") {
+    return <TableHead className={props.className} onClick={handleLayerClick}>{renderChildren()}</TableHead>;
+  }
+  if (layer.type === "TableCell") {
+    return <TableCell className={props.className} onClick={handleLayerClick}>{renderChildren()}</TableCell>;
+  }
+  if (layer.type === "TableCaption") {
+    return <TableCaption className={props.className} onClick={handleLayerClick}>{renderChildren()}</TableCaption>;
   }
 
   // Fallback cho text hoặc HTML tag

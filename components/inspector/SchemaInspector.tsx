@@ -49,17 +49,17 @@ export function SchemaInspector({ item, onChange, palette: p }: SchemaInspectorP
   return (
     <Section id="schema-inspector" icon="tune" title="Component Tree & Schema" p={p}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {/* 1. MULTI-MODE SWITCH CHO DIALOG / MODAL */}
-        {(rootLayer.type === "Dialog" || item.kind === "shadcnDialog") && (
+        {/* 1. MULTI-MODE SWITCH CHO DIALOG / SHEET */}
+        {(rootLayer.type === "Dialog" || item.kind === "shadcnDialog" || rootLayer.type === "Sheet" || item.kind === "shadcnSheet") && (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: p.primary, display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: p.primary }} />
-              Dialog Render Mode
+              {rootLayer.type === "Sheet" || item.kind === "shadcnSheet" ? "Sheet Render Mode" : "Dialog Render Mode"}
             </div>
             <Segmented<"edit" | "preview">
               options={[
                 { key: "edit", label: "Edit (Inline)" },
-                { key: "preview", label: "Preview (Modal)" },
+                { key: "preview", label: "Preview (Overlay)" },
               ]}
               value={item.renderMode ?? "edit"}
               onChange={(mode) => onChange({ renderMode: mode })}
@@ -329,6 +329,140 @@ export function SchemaInspector({ item, onChange, palette: p }: SchemaInspectorP
                 value={activeProps.alt ?? ""}
                 onChange={(v) => handlePropChange("alt", v)}
                 placeholder="@shadcn"
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* SheetContent Side Selector */}
+          {activeLayer.type === "SheetContent" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Side (Drawer Edge)</div>
+              <Segmented<"top" | "bottom" | "left" | "right">
+                options={[
+                  { key: "top", label: "Top" },
+                  { key: "bottom", label: "Bottom" },
+                  { key: "left", label: "Left" },
+                  { key: "right", label: "Right" },
+                ]}
+                value={activeProps.side ?? "right"}
+                onChange={(s) => handlePropChange("side", s)}
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* Accordion Controls */}
+          {activeLayer.type === "Accordion" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Type</div>
+              <Segmented<"single" | "multiple">
+                options={[
+                  { key: "single", label: "Single" },
+                  { key: "multiple", label: "Multiple" },
+                ]}
+                value={activeProps.type ?? "single"}
+                onChange={(t) => {
+                  handlePropChange("type", t);
+                  if (t === "multiple") {
+                    const current = activeProps.defaultValue;
+                    const nextVal = Array.isArray(current)
+                      ? current
+                      : current
+                      ? [String(current)]
+                      : ["item-1"];
+                    handlePropChange("defaultValue", nextVal);
+                  } else {
+                    const current = activeProps.defaultValue;
+                    const nextVal = Array.isArray(current)
+                      ? current[0] ?? "item-1"
+                      : current ?? "item-1";
+                    handlePropChange("defaultValue", nextVal);
+                  }
+                }}
+                p={p}
+              />
+              {(activeProps.type ?? "single") === "single" && (
+                <Toggle
+                  label="Collapsible"
+                  on={activeProps.collapsible ?? true}
+                  onChange={(v) => handlePropChange("collapsible", v)}
+                  p={p}
+                />
+              )}
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>
+                Default Value {(activeProps.type ?? "single") === "multiple" ? "(comma-separated)" : ""}
+              </div>
+              <Field
+                value={
+                  Array.isArray(activeProps.defaultValue)
+                    ? activeProps.defaultValue.join(", ")
+                    : activeProps.defaultValue ?? ""
+                }
+                onChange={(v) => {
+                  if ((activeProps.type ?? "single") === "multiple") {
+                    const arr = v.split(",").map((s) => s.trim()).filter(Boolean);
+                    handlePropChange("defaultValue", arr);
+                  } else {
+                    handlePropChange("defaultValue", v);
+                  }
+                }}
+                placeholder={(activeProps.type ?? "single") === "multiple" ? "item-1, item-2" : "item-1"}
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* AccordionItem Controls */}
+          {activeLayer.type === "AccordionItem" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Value (Identifier)</div>
+              <Field
+                value={activeProps.value ?? ""}
+                onChange={(v) => handlePropChange("value", v)}
+                placeholder="e.g. item-1"
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* Tabs Controls */}
+          {activeLayer.type === "Tabs" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Default Value (Active Tab)</div>
+              <Field
+                value={activeProps.defaultValue ?? "account"}
+                onChange={(v) => handlePropChange("defaultValue", v)}
+                placeholder="account"
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* TabsTrigger & TabsContent Controls */}
+          {(activeLayer.type === "TabsTrigger" || activeLayer.type === "TabsContent") && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Value (Tab Identifier)</div>
+              <Field
+                value={activeProps.value ?? ""}
+                onChange={(v) => handlePropChange("value", v)}
+                placeholder="e.g. account"
+                p={p}
+              />
+            </div>
+          )}
+
+          {/* Alert Controls */}
+          {activeLayer.type === "Alert" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Variant</div>
+              <Segmented<"default" | "destructive">
+                options={[
+                  { key: "default", label: "Default" },
+                  { key: "destructive", label: "Destructive" },
+                ]}
+                value={activeProps.variant ?? "default"}
+                onChange={(v) => handlePropChange("variant", v)}
                 p={p}
               />
             </div>

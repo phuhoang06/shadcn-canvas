@@ -886,7 +886,7 @@ export const componentRegistry: ComponentRegistry = {
         id: "sheet-trig",
         type: "SheetTrigger",
         name: "SheetTrigger",
-        props: {},
+        props: { asChild: true },
         children: [
           {
             id: "sheet-btn",
