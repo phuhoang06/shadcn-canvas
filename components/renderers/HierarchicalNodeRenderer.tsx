@@ -52,6 +52,12 @@ import {
   TooltipContent,
   TooltipProvider,
 } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Slider } from "@/components/ui/slider";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { usePopperZoom } from "./PopperZoomAdapter";
 import { cn } from "@/lib/utils";
 
@@ -486,6 +492,115 @@ export function HierarchicalNodeRenderer({
   }
   if (layer.type === "TooltipContent") {
     return <WrappedTooltipContent layer={layer}>{renderChildren()}</WrappedTooltipContent>;
+  }
+
+  // 10. CHECKBOX
+  if (layer.type === "Checkbox") {
+    return (
+      <Checkbox
+        checked={props.checked}
+        defaultChecked={props.defaultChecked}
+        disabled={props.disabled}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      />
+    );
+  }
+
+  // 11. SWITCH
+  if (layer.type === "Switch") {
+    return (
+      <Switch
+        checked={props.checked}
+        defaultChecked={props.defaultChecked}
+        disabled={props.disabled}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      />
+    );
+  }
+
+  // 12. SLIDER (POINTER ISOLATION)
+  if (layer.type === "Slider") {
+    return (
+      <Slider
+        defaultValue={props.defaultValue ?? [50]}
+        min={props.min ?? 0}
+        max={props.max ?? 100}
+        step={props.step ?? 1}
+        disabled={props.disabled}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      />
+    );
+  }
+
+  // 13. RADIOGROUP
+  if (layer.type === "RadioGroup") {
+    return (
+      <RadioGroup
+        defaultValue={props.defaultValue ?? "option-1"}
+        disabled={props.disabled}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </RadioGroup>
+    );
+  }
+  if (layer.type === "RadioGroupItem") {
+    return (
+      <RadioGroupItem
+        value={props.value ?? "option"}
+        disabled={props.disabled}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      />
+    );
+  }
+
+  // 14. LABEL
+  if (layer.type === "Label") {
+    return (
+      <Label
+        htmlFor={props.htmlFor}
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </Label>
+    );
+  }
+
+  // 15. AVATAR
+  if (layer.type === "Avatar") {
+    return (
+      <Avatar
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </Avatar>
+    );
+  }
+  if (layer.type === "AvatarImage") {
+    return (
+      <AvatarImage
+        src={props.src ?? "https://github.com/shadcn.png"}
+        alt={props.alt ?? "@shadcn"}
+        className={props.className}
+      />
+    );
+  }
+  if (layer.type === "AvatarFallback") {
+    return (
+      <AvatarFallback
+        className={props.className}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </AvatarFallback>
+    );
   }
 
   // Fallback cho text hoặc HTML tag

@@ -77,6 +77,15 @@ const COMPONENT_MODULE_MAP: Record<string, string> = {
   TooltipTrigger: "@/components/ui/tooltip",
   TooltipContent: "@/components/ui/tooltip",
   TooltipProvider: "@/components/ui/tooltip",
+  Checkbox: "@/components/ui/checkbox",
+  Switch: "@/components/ui/switch",
+  Slider: "@/components/ui/slider",
+  RadioGroup: "@/components/ui/radio-group",
+  RadioGroupItem: "@/components/ui/radio-group",
+  Label: "@/components/ui/label",
+  Avatar: "@/components/ui/avatar",
+  AvatarImage: "@/components/ui/avatar",
+  AvatarFallback: "@/components/ui/avatar",
 };
 
 /**
