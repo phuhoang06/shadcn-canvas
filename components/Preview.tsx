@@ -6,6 +6,7 @@ import { AnimatePresence, animate, motion, useMotionValue, useTransform, useRedu
 import type { TargetAndTransition, Variants } from "motion/react";
 import {
   Action,
+  actionSlotsOf,
   BACK_TARGET,
   BEZEL,
   Doc,
@@ -256,10 +257,33 @@ function Tappable({
     /* hit areas sit inside the scrolling layer, one per tab, so they move with the row */
     const n = item.tabs?.length ?? 0;
     for (let i = 0; i < n; i++) slots.push({ key: `tab:${i}`, style: { left: i * SCROLL_TAB_W, width: SCROLL_TAB_W, top: 0, bottom: 0, borderRadius: 16 } });
-  } else if (onSlot && (item.kind === "bottomNav" || item.kind === "tabs")) {
+  } else if (onSlot && (item.kind === "bottomNav" || item.kind === "tabs" || item.kind === "shadcnTabs")) {
     const n = item.tabs?.length ?? 0;
     for (let i = 0; i < n; i++)
       slots.push({ key: `tab:${i}`, style: { left: `${(i / n) * 100}%`, width: `${100 / n}%`, top: 0, bottom: item.kind === "bottomNav" ? NAV_BAR_H : 0, borderRadius: 16 } });
+  }
+  if (onSlot && item.kind === "splitButton") {
+    const sz = sizeOf(item, widths);
+    const arrowW = 48;
+    const mainW = Math.max(0, sz.w - arrowW);
+    slots.push({ key: "main", style: { left: 0, top: 0, width: mainW, height: sz.h, borderRadius: 24 } });
+    slots.push({ key: "arrow", style: { left: mainW, top: 0, width: arrowW, height: sz.h, borderRadius: 24 } });
+  }
+  if (onSlot && (item.kind === "card" || item.kind === "shadcnCard")) {
+    const sz = sizeOf(item, widths);
+    slots.push({ key: "primary", style: { right: 12, bottom: 12, width: 110, height: 36, borderRadius: 8 } });
+    slots.push({ key: "secondary", style: { right: 130, bottom: 12, width: 90, height: 36, borderRadius: 8 } });
+    slots.push({ key: "card", style: { left: 0, top: 0, width: sz.w, height: Math.max(0, sz.h - 52), borderRadius: 12 } });
+  }
+  if (onSlot && (item.kind === "dialog" || item.kind === "shadcnDialog")) {
+    const sz = sizeOf(item, widths);
+    slots.push({ key: "confirm", style: { right: 16, bottom: 16, width: 100, height: 40, borderRadius: 8 } });
+    slots.push({ key: "cancel", style: { right: 124, bottom: 16, width: 80, height: 40, borderRadius: 8 } });
+  }
+  if (onSlot && (item.kind === "snackbar" || item.kind === "shadcnAlert")) {
+    const sz = sizeOf(item, widths);
+    slots.push({ key: "action", style: { right: 48, top: 0, width: 80, height: sz.h, borderRadius: 8 } });
+    slots.push({ key: "dismiss", style: { right: 8, top: 0, width: 36, height: sz.h, borderRadius: 18 } });
   }
   if (onSlot && item.kind === "navRail") {
     const rail = railMetrics(item);
@@ -652,12 +676,12 @@ function Screen({
                 railAnimating={railMotion?.items.has(it.id)}
                 onTap={tap}
                 onSlot={
-                  slotActions || navKind
+                  slotActions || navKind || actionSlotsOf(it).length > 0
                     ? (slot, animate) => {
                         /* a tapped destination lights up where it opens nothing; where it opens a
                            screen, that screen's bar shows the destination its author chose, or the
                            tapped one when the author chose none */
-                        const a = slotActions?.[slot];
+                        const a = slotActions?.[slot] || (slot === "main" ? act : undefined);
                         if (navKind && slot.startsWith("tab:")) {
                           onValue(navKey, a ? -1 : Number(slot.slice(4)));
                           if (a) onValue(`${navKey}:opened:${a.to}`, Number(slot.slice(4)));
@@ -814,23 +838,31 @@ export function Preview({
     setStack(s.slice(0, -1));
   }, [spring, sameSize]);
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastData, setToastData] = useState<{
+    message: string;
+    title?: string;
+    variant?: "success" | "info" | "warning" | "error";
+  } | null>(null);
 
   useEffect(() => {
-    if (!toastMessage) return;
-    const timer = setTimeout(() => setToastMessage(null), 2500);
+    if (!toastData) return;
+    const timer = setTimeout(() => setToastData(null), 2500);
     return () => clearTimeout(timer);
-  }, [toastMessage]);
+  }, [toastData]);
 
   const go = useCallback(
     (a: Action) => {
       if (swiped.current) return;
       if (a.type === "toast" || a.to.startsWith("toast:")) {
         const msg = a.to.startsWith("toast:") ? a.to.slice(6) : a.to;
-        setToastMessage(msg || "Thao tác thành công!");
+        setToastData({
+          message: msg || "Thao tác thành công!",
+          title: a.toastTitle,
+          variant: a.toastVariant || "success",
+        });
         return;
       }
-      if (a.type === "url" || /^https?:\/\//i.test(a.to)) {
+      if (a.type === "url" || /^https?:\/\//i.test(a.to) || /^mailto:/i.test(a.to) || /^tel:/i.test(a.to)) {
         if (typeof window !== "undefined") {
           window.open(a.to, "_blank");
         }
@@ -1126,7 +1158,7 @@ export function Preview({
               </motion.div>
             )}
 
-            {toastMessage && (
+            {toastData && (
               <motion.div
                 initial={{ opacity: 0, y: 15, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1137,7 +1169,14 @@ export function Preview({
                   left: 20,
                   right: 20,
                   zIndex: 99,
-                  background: "rgba(15, 23, 42, 0.94)",
+                  background:
+                    toastData.variant === "error"
+                      ? "rgba(220, 38, 38, 0.95)"
+                      : toastData.variant === "warning"
+                      ? "rgba(217, 119, 6, 0.95)"
+                      : toastData.variant === "info"
+                      ? "rgba(37, 99, 235, 0.95)"
+                      : "rgba(15, 23, 42, 0.94)",
                   backdropFilter: "blur(12px)",
                   color: "#ffffff",
                   padding: "12px 18px",
@@ -1145,14 +1184,48 @@ export function Preview({
                   boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
                   display: "flex",
                   alignItems: "center",
-                  gap: 10,
+                  gap: 12,
                   pointerEvents: "none",
                 }}
               >
-                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#10b981", display: "grid", placeItems: "center", flexShrink: 0 }}>
-                  <Icon name="check" size={16} color="#ffffff" />
+                <div
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: "50%",
+                    background:
+                      toastData.variant === "error"
+                        ? "#991b1b"
+                        : toastData.variant === "warning"
+                        ? "#92400e"
+                        : toastData.variant === "info"
+                        ? "#1e40af"
+                        : "#10b981",
+                    display: "grid",
+                    placeItems: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <Icon
+                    name={
+                      toastData.variant === "error"
+                        ? "error"
+                        : toastData.variant === "warning"
+                        ? "warning"
+                        : toastData.variant === "info"
+                        ? "info"
+                        : "check"
+                    }
+                    size={16}
+                    color="#ffffff"
+                  />
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, flex: 1 }}>{toastMessage}</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2, flex: 1, minWidth: 0 }}>
+                  {toastData.title && (
+                    <div style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{toastData.title}</div>
+                  )}
+                  <div style={{ fontSize: 12, fontWeight: 500, lineHeight: 1.3, opacity: 0.95 }}>{toastData.message}</div>
+                </div>
               </motion.div>
             )}
           </motion.div>

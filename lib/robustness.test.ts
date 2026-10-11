@@ -5,6 +5,7 @@ import {
   Item,
   Group,
   actionsOf,
+  actionSlotsOf,
   TAPPABLE,
   BACK_TARGET,
   frameOfGroup,
@@ -1104,6 +1105,67 @@ describe("Robustness Suite: Happy & Unhappy Cases", () => {
       expect(testInBin(winW / 2, winH - 300, false, false)).toBe(false);
       // Unhappy / Edge: canvas center on mobile
       expect(testInBin(500, 400, true, false)).toBe(false);
+    });
+
+    it("[Happy & Edge] actionSlotsOf extracts child buttons for splitButton, card, dialog, and snackbar", () => {
+      const splitBtn: Item = {
+        id: "sb-1",
+        kind: "splitButton",
+        label: "Xuất file",
+        variant: "filled",
+      };
+      const splitSlots = actionSlotsOf(splitBtn);
+      expect(splitSlots).toHaveLength(2);
+      expect(splitSlots[0].key).toBe("main");
+      expect(splitSlots[0].label).toContain("Xuất file");
+      expect(splitSlots[1].key).toBe("arrow");
+
+      const cardItem: Item = {
+        id: "card-1",
+        kind: "shadcnCard",
+        label: "Product",
+        variant: "filled",
+      };
+      const cardSlots = actionSlotsOf(cardItem);
+      expect(cardSlots.map((s) => s.key)).toEqual(["primary", "secondary", "card"]);
+
+      const dialogItem: Item = {
+        id: "dlg-1",
+        kind: "dialog",
+        label: "Confirm Dialog",
+        variant: "filled",
+      };
+      const dialogSlots = actionSlotsOf(dialogItem);
+      expect(dialogSlots.map((s) => s.key)).toEqual(["confirm", "cancel"]);
+    });
+
+    it("[Happy] actionsOf correctly extracts both main action and all child button actions", () => {
+      const itemWithSubActions: Item = {
+        id: "comp-1",
+        kind: "splitButton",
+        label: "Tùy chọn",
+        variant: "filled",
+        action: { to: "screen-a", transition: "slide", type: "navigate" },
+        actions: {
+          main: { to: "screen-main", transition: "fade", type: "navigate" },
+          arrow: {
+            to: "Mở menu tùy chọn!",
+            transition: "none",
+            type: "toast",
+            toastTitle: "Tùy chọn",
+            toastVariant: "info",
+          },
+        },
+      };
+
+      const extracted = actionsOf(itemWithSubActions);
+      expect(extracted).toHaveLength(3);
+      expect(extracted.find((x) => x.slot === "")?.action.to).toBe("screen-a");
+      expect(extracted.find((x) => x.slot === "main")?.action.to).toBe("screen-main");
+      const toastAct = extracted.find((x) => x.slot === "arrow")?.action;
+      expect(toastAct?.type).toBe("toast");
+      expect(toastAct?.toastTitle).toBe("Tùy chọn");
+      expect(toastAct?.toastVariant).toBe("info");
     });
   });
 });

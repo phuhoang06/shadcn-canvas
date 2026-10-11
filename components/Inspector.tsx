@@ -314,6 +314,22 @@ function TransitionPicker({ value, onChange, p }: { value: Transition; onChange:
   );
 }
 
+const TOAST_PRESETS = [
+  { label: "🛒 Giỏ hàng", msg: "Đã thêm sản phẩm vào giỏ hàng thành công!", title: "Giỏ hàng", variant: "success" as const },
+  { label: "✨ Đã lưu", msg: "Thông tin đã được lưu thành công!", title: "Thành công", variant: "success" as const },
+  { label: "📋 Sao chép", msg: "Đã sao chép liên kết vào bộ nhớ tạm!", title: "Đã sao chép", variant: "info" as const },
+  { label: "💳 Thanh toán", msg: "Thanh toán đơn hàng thành công!", title: "Thanh toán", variant: "success" as const },
+  { label: "⚠️ Cảnh báo", msg: "Vui lòng điền đầy đủ các thông tin bắt buộc!", title: "Cảnh báo", variant: "warning" as const },
+  { label: "❌ Thất bại", msg: "Có lỗi xảy ra, vui lòng thử lại sau!", title: "Lỗi", variant: "error" as const },
+];
+
+const URL_PRESETS = [
+  { label: "Google", url: "https://google.com" },
+  { label: "GitHub", url: "https://github.com" },
+  { label: "Email (mailto:)", url: "mailto:support@example.com" },
+  { label: "Hotline (tel:)", url: "tel:19001000" },
+];
+
 /** target frame (or back) plus transition, toast message, or external URL */
 function ActionEditor({
   frames,
@@ -336,19 +352,81 @@ function ActionEditor({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* Action Status Summary & Remove Button */}
+      {action && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "8px 12px",
+            borderRadius: 10,
+            background: `color-mix(in srgb, ${p.primary} 8%, transparent)`,
+            border: `1px solid ${p.outlineVariant}`,
+            fontSize: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, overflow: "hidden" }}>
+            <Icon
+              name={currentType === "toast" ? "notifications" : currentType === "url" ? "open_in_new" : action.to === BACK_TARGET ? "arrow_back" : "arrow_forward"}
+              size={16}
+              color={p.primary}
+            />
+            <span style={{ fontWeight: 600, color: p.onSurface, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {currentType === "toast"
+                ? `Toast: "${action.to}"`
+                : currentType === "url"
+                ? `Link: ${action.to}`
+                : action.to === BACK_TARGET
+                ? "Quay lại (Back)"
+                : `Chuyển sang: ${frames.find((f) => f.id === action.to)?.name || action.to}`}
+            </span>
+          </div>
+          <button
+            onClick={() => onChange(undefined)}
+            className="m3-press"
+            title="Gỡ sự kiện này"
+            style={{
+              border: "none",
+              background: "transparent",
+              color: p.error,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "2px 6px",
+              borderRadius: 6,
+              flexShrink: 0,
+            }}
+          >
+            <Icon name="close" size={14} />
+            Gỡ
+          </button>
+        </div>
+      )}
+
+      {/* Segmented Type Picker */}
       <Segmented<"navigate" | "toast" | "url">
         options={[
-          { key: "navigate", label: "Screen", icon: "arrow_forward" },
+          { key: "navigate", label: "Chuyển trang", icon: "arrow_forward" },
           { key: "toast", label: "Toast", icon: "notifications" },
-          { key: "url", label: "Link", icon: "open_in_new" },
+          { key: "url", label: "Mở Link", icon: "open_in_new" },
         ]}
         value={currentType}
         onChange={(type) => {
           if (type === "navigate") {
             const firstFrame = frames[0]?.id;
-            onChange(firstFrame ? { to: firstFrame, transition: "slide", type: "navigate" } : undefined);
+            onChange(firstFrame ? { to: firstFrame, transition: "slide", type: "navigate" } : { to: BACK_TARGET, transition: "none", type: "navigate" });
           } else if (type === "toast") {
-            onChange({ to: action?.type === "toast" ? action.to : "Thao tác thành công!", transition: "none", type: "toast" });
+            onChange({
+              to: action?.type === "toast" ? action.to : "Đã thực hiện thao tác thành công!",
+              transition: "none",
+              type: "toast",
+              toastTitle: action?.toastTitle ?? "Thành công",
+              toastVariant: action?.toastVariant ?? "success",
+            });
           } else if (type === "url") {
             onChange({ to: action?.type === "url" ? action.to : "https://", transition: "none", type: "url" });
           }
@@ -358,7 +436,8 @@ function ActionEditor({
       />
 
       {currentType === "navigate" && (
-        <>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Chọn màn hình đích đến:</div>
           <FrameChips
             frames={frames}
             value={action?.to ?? null}
@@ -367,22 +446,111 @@ function ActionEditor({
             back
           />
           {action && action.to !== BACK_TARGET && (
-            <TransitionPicker
-              value={action.transition ?? "slide"}
-              onChange={(transition) => onChange({ ...action, transition, type: "navigate" })}
-              p={p}
-            />
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Hiệu ứng chuyển cảnh (Transition):</div>
+              <TransitionPicker
+                value={action.transition ?? "slide"}
+                onChange={(transition) => onChange({ ...action, transition, type: "navigate" })}
+                p={p}
+              />
+            </div>
           )}
-        </>
+          {frames.length === 0 && (
+            <div style={{ fontSize: 12, color: p.onSurfaceVariant, padding: "6px 8px", background: p.surfaceContainerHigh, borderRadius: 8 }}>
+              Chưa có màn hình nào trên canvas. Bạn có thể chọn loại <b>Toast</b> hoặc <b>Mở Link</b> ở trên.
+            </div>
+          )}
+        </div>
       )}
 
       {currentType === "toast" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Toast Notification Message</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {/* Quick Presets */}
+          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Mẫu thông báo nhanh (Presets):</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {TOAST_PRESETS.map((pst) => (
+              <button
+                key={pst.label}
+                onClick={() =>
+                  onChange({
+                    to: pst.msg,
+                    toastTitle: pst.title,
+                    toastVariant: pst.variant,
+                    transition: "none",
+                    type: "toast",
+                  })
+                }
+                className="m3-press"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "4px 8px",
+                  borderRadius: 8,
+                  border: `1px solid ${p.outlineVariant}`,
+                  background: p.surfaceContainerLow,
+                  color: p.onSurface,
+                  cursor: "pointer",
+                }}
+              >
+                {pst.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Variant Selector */}
+          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant, marginTop: 2 }}>Loại thông báo:</div>
+          <Segmented<"success" | "info" | "warning" | "error">
+            options={[
+              { key: "success", label: "Thành công", icon: "check_circle" },
+              { key: "info", label: "Thông tin", icon: "info" },
+              { key: "warning", label: "Cảnh báo", icon: "warning" },
+              { key: "error", label: "Lỗi", icon: "error" },
+            ]}
+            value={action?.toastVariant ?? "success"}
+            onChange={(toastVariant) =>
+              onChange({
+                to: action?.to ?? "Thao tác thành công!",
+                toastTitle: action?.toastTitle,
+                toastVariant,
+                transition: "none",
+                type: "toast",
+              })
+            }
+            p={p}
+            height={30}
+          />
+
+          {/* Custom Toast Title & Message */}
+          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant, marginTop: 2 }}>Tiêu đề Toast (tùy chọn):</div>
+          <Field
+            value={action?.toastTitle ?? ""}
+            onChange={(toastTitle) =>
+              onChange({
+                to: action?.to ?? "Thao tác thành công!",
+                toastTitle: toastTitle || undefined,
+                toastVariant: action?.toastVariant ?? "success",
+                transition: "none",
+                type: "toast",
+              })
+            }
+            placeholder="Ví dụ: Giỏ hàng, Thành công..."
+            p={p}
+            icon="title"
+          />
+
+          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Nội dung thông báo chi tiết:</div>
           <Field
             value={action?.to ?? "Thao tác thành công!"}
-            onChange={(to) => onChange({ to, transition: "none", type: "toast" })}
-            placeholder="Ví dụ: Đã thêm vào giỏ hàng thành công!"
+            onChange={(to) =>
+              onChange({
+                to,
+                toastTitle: action?.toastTitle,
+                toastVariant: action?.toastVariant ?? "success",
+                transition: "none",
+                type: "toast",
+              })
+            }
+            placeholder="Ví dụ: Đã thêm sản phẩm vào giỏ hàng thành công!"
             p={p}
             icon="notifications"
           />
@@ -390,8 +558,31 @@ function ActionEditor({
       )}
 
       {currentType === "url" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>External Web URL</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Mẫu liên kết nhanh:</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {URL_PRESETS.map((pst) => (
+              <button
+                key={pst.label}
+                onClick={() => onChange({ to: pst.url, transition: "none", type: "url" })}
+                className="m3-press"
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  padding: "4px 8px",
+                  borderRadius: 8,
+                  border: `1px solid ${p.outlineVariant}`,
+                  background: p.surfaceContainerLow,
+                  color: p.onSurface,
+                  cursor: "pointer",
+                }}
+              >
+                {pst.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant, marginTop: 2 }}>Đường dẫn Web URL:</div>
           <Field
             value={action?.to ?? "https://"}
             onChange={(to) => onChange({ to, transition: "none", type: "url" })}
@@ -1763,67 +1954,115 @@ export function Inspector({
         </Section>
       )}
 
-      {(TAPPABLE.includes(item.kind) || actionSlots.length > 0) && frames.length > 0 && !editOn && (
-        <Section id="action" icon="ads_click" title={t("tapTo", lang)} p={p}>
+      {(TAPPABLE.includes(item.kind) || actionSlots.length > 0) && !editOn && (
+        <Section id="action" icon="ads_click" title={actionSlots.length > 0 ? "Sự kiện các nút con (Child Actions)" : "Sự kiện & Tương tác (Actions)"} p={p}>
           {actionSlots.length > 0 ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {item.kind === "tabs" ? (
-                /* a tab row names its destinations in words and may have many: chips that wrap, not one long segment */
-                <div role="radiogroup" aria-label={t("tapTo", lang)} style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {actionSlots.map((s) => {
-                    const on = s.key === (actionSlot || actionSlots[0].key);
-                    const set = !!item.actions?.[s.key];
-                    return (
-                      <button
-                        key={s.key}
-                        onClick={() => setActionSlot(s.key)}
-                        title={s.label}
-                        role="radio"
-                        aria-checked={on}
-                        className="m3-press"
-                        style={{
-                          height: 32, padding: "0 12px", borderRadius: 8, maxWidth: "100%", cursor: "pointer", fontSize: 13, fontWeight: 600,
-                          border: `1px solid ${on ? "transparent" : p.outline}`,
-                          background: on ? p.primary : "transparent",
-                          color: on ? p.onPrimary : p.onSurfaceVariant,
-                          display: "inline-flex", alignItems: "center", gap: 6,
-                        }}
-                      >
-                        {set && <Icon name="ads_click" size={16} />}
-                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-              <Segmented<string>
-                options={actionSlots.map((s) => ({
-                  key: s.key,
-                  icon: s.value ?? undefined,
-                  label: s.value ? undefined : s.label,
-                  title: s.label,
-                  dot: !!item.actions?.[s.key],
-                }))}
-                value={actionSlot || actionSlots[0].key}
-                onChange={setActionSlot}
-                p={p}
-                height={40}
-              />
-              )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant, lineHeight: 1.4 }}>
+                Linh kiện có {actionSlots.length} nút/thao tác con. Chọn từng nút bên dưới để thiết lập sự kiện độc lập:
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {actionSlots.map((s) => {
+                  const on = s.key === (actionSlot || actionSlots[0].key);
+                  const act = item.actions?.[s.key];
+                  return (
+                    <div
+                      key={s.key}
+                      onClick={() => setActionSlot(s.key)}
+                      className="m3-press"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 12px",
+                        borderRadius: 12,
+                        cursor: "pointer",
+                        border: `1.5px solid ${on ? p.primary : p.outlineVariant}`,
+                        background: on ? `color-mix(in srgb, ${p.primary} 8%, ${p.surfaceContainerLow})` : p.surfaceContainerLow,
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 14,
+                            background: on ? p.primary : p.surfaceContainerHigh,
+                            color: on ? p.onPrimary : p.onSurfaceVariant,
+                            display: "grid",
+                            placeItems: "center",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <Icon name={s.value || (s.key === "arrow" ? "arrow_drop_down" : "smart_button")} size={16} />
+                        </div>
+                        <span style={{ fontSize: 13, fontWeight: on ? 700 : 600, color: on ? p.onSurface : p.onSurfaceVariant, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {s.label}
+                        </span>
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        {act ? (
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: "2px 8px",
+                              borderRadius: 10,
+                              background: act.type === "toast" ? "rgba(16,185,129,0.15)" : act.type === "url" ? "rgba(59,130,246,0.15)" : `color-mix(in srgb, ${p.primary} 15%, transparent)`,
+                              color: act.type === "toast" ? "#059669" : act.type === "url" ? "#2563eb" : p.primary,
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                            }}
+                          >
+                            <Icon name={act.type === "toast" ? "notifications" : act.type === "url" ? "open_in_new" : "arrow_forward"} size={12} />
+                            {act.type === "toast" ? "Toast" : act.type === "url" ? "Link" : act.to === BACK_TARGET ? "Back" : "Screen"}
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11, color: p.onSurfaceVariant, opacity: 0.7 }}>
+                            Chưa gắn
+                          </span>
+                        )}
+                        <Icon name={on ? "expand_less" : "chevron_right"} size={18} color={p.onSurfaceVariant} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Chi tiết sự kiện của nút con đang chọn */}
               {(() => {
                 const key = actionSlot || actionSlots[0].key;
+                const activeSlot = actionSlots.find((x) => x.key === key) || actionSlots[0];
                 return (
-                  <ActionEditor
-                    frames={frames}
-                    action={item.actions?.[key]}
-                    onChange={(a) => {
-                      const actions = { ...(item.actions ?? {}) };
-                      if (a) actions[key] = a;
-                      else delete actions[key];
-                      onChange({ actions: Object.keys(actions).length ? actions : undefined });
+                  <div
+                    style={{
+                      padding: 12,
+                      borderRadius: 14,
+                      background: p.surfaceContainer,
+                      border: `1px solid ${p.outlineVariant}`,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 10,
                     }}
-                    p={p}
-                  />
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 700, color: p.primary, display: "flex", alignItems: "center", gap: 6 }}>
+                      <Icon name="tune" size={16} />
+                      Cấu hình sự kiện: {activeSlot.label}
+                    </div>
+                    <ActionEditor
+                      frames={frames}
+                      action={item.actions?.[key]}
+                      onChange={(a) => {
+                        const actions = { ...(item.actions ?? {}) };
+                        if (a) actions[key] = a;
+                        else delete actions[key];
+                        onChange({ actions: Object.keys(actions).length ? actions : undefined });
+                      }}
+                      p={p}
+                    />
+                  </div>
                 );
               })()}
             </div>

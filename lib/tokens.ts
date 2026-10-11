@@ -1677,6 +1677,7 @@ export type Action = {
   transition: Transition;
   type?: ActionType;
   toastTitle?: string;
+  toastVariant?: "success" | "info" | "warning" | "error";
 };
 
 export const TRANSITIONS: { key: Transition; label: string; icon: string }[] = [
@@ -1689,11 +1690,36 @@ export const TRANSITIONS: { key: Transition; label: string; icon: string }[] = [
   { key: "none", label: "None", icon: "block" },
 ];
 
-/** slots on a bar that can each carry their own tap action */
+/** slots on a bar or compound component that can each carry their own tap action */
 export function actionSlotsOf(it: Item): IconSlot[] {
   if (it.kind === "topAppBar" || it.kind === "bottomNav" || it.kind === "navRail" || it.kind === "toolbar") return iconSlotsOf(it).filter((s) => !!s.value);
   if (it.kind === "fabMenu") return (it.tabs ?? []).map((t, i) => ({ key: `tab:${i}`, label: t.label || `${i + 1}`, value: t.icon || null }));
-  if (it.kind === "tabs") return (it.tabs ?? []).map((t, i) => ({ key: `tab:${i}`, label: t.label || `${i + 1}`, value: null }));
+  if (it.kind === "tabs" || it.kind === "shadcnTabs") return (it.tabs ?? []).map((t, i) => ({ key: `tab:${i}`, label: t.label || `Tab ${i + 1}`, value: null }));
+  if (it.kind === "splitButton") {
+    return [
+      { key: "main", label: it.label?.trim() ? `Nút chính: ${it.label}` : "Nút chính", value: it.icon || "smart_button" },
+      { key: "arrow", label: "Nút mở rộng (Mũi tên)", value: "arrow_drop_down" },
+    ];
+  }
+  if (it.kind === "card" || it.kind === "shadcnCard") {
+    return [
+      { key: "primary", label: "Nút chính (Primary CTA)", value: "touch_app" },
+      { key: "secondary", label: "Nút phụ (Secondary)", value: "open_in_new" },
+      { key: "card", label: "Toàn bộ thẻ (Card)", value: "crop_landscape" },
+    ];
+  }
+  if (it.kind === "dialog" || it.kind === "shadcnDialog") {
+    return [
+      { key: "confirm", label: "Nút Xác nhận (Confirm)", value: "check_circle" },
+      { key: "cancel", label: "Nút Hủy / Đóng (Cancel)", value: "cancel" },
+    ];
+  }
+  if (it.kind === "snackbar" || it.kind === "shadcnAlert") {
+    return [
+      { key: "action", label: "Nút Hành động (Action)", value: "bolt" },
+      { key: "dismiss", label: "Nút Đóng (Dismiss)", value: "close" },
+    ];
+  }
   return [];
 }
 
@@ -1728,10 +1754,14 @@ export const TAPPABLE: Kind[] = [
   "text",
   "splitButton",
   "radio",
+  "dialog",
+  "snackbar",
   "shadcnButton",
   "shadcnCard",
   "shadcnBadge",
   "shadcnAvatar",
+  "shadcnDialog",
+  "shadcnAlert",
 ];
 
 /** palette roles a user may pick as a background */
