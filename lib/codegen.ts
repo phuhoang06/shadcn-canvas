@@ -113,6 +113,15 @@ const COMPONENT_MODULE_MAP: Record<string, string> = {
   TableHead: "@/components/ui/table",
   TableCell: "@/components/ui/table",
   TableCaption: "@/components/ui/table",
+  Skeleton: "@/components/ui/skeleton",
+  Progress: "@/components/ui/progress",
+  Breadcrumb: "@/components/ui/breadcrumb",
+  BreadcrumbList: "@/components/ui/breadcrumb",
+  BreadcrumbItem: "@/components/ui/breadcrumb",
+  BreadcrumbLink: "@/components/ui/breadcrumb",
+  BreadcrumbPage: "@/components/ui/breadcrumb",
+  BreadcrumbSeparator: "@/components/ui/breadcrumb",
+  BreadcrumbEllipsis: "@/components/ui/breadcrumb",
 };
 
 /**

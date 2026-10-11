@@ -497,7 +497,10 @@ export type Kind =
   | "shadcnAccordion"
   | "shadcnTabs"
   | "shadcnAlert"
-  | "shadcnTable";
+  | "shadcnTable"
+  | "shadcnSkeleton"
+  | "shadcnProgress"
+  | "shadcnBreadcrumb";
 
 export type ShadcnButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 export type ShadcnButtonSize = "default" | "sm" | "lg" | "icon";
@@ -1451,6 +1454,51 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     defLabel: "Invoices Table",
     defIcon: null,
   },
+  shadcnSkeleton: {
+    label: "Shadcn Skeleton",
+    noun: "Shadcnスケルトン",
+    category: "shadcn",
+    paletteIcon: "view_agenda",
+    w: 240,
+    h: 24,
+    radius: 6,
+    hasVariant: false,
+    hasLabel: false,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "",
+    defIcon: null,
+  },
+  shadcnProgress: {
+    label: "Shadcn Progress",
+    noun: "Shadcnプログレス",
+    category: "shadcn",
+    paletteIcon: "linear_scale",
+    w: 240,
+    h: 16,
+    radius: 8,
+    hasVariant: false,
+    hasLabel: false,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "",
+    defIcon: null,
+  },
+  shadcnBreadcrumb: {
+    label: "Shadcn Breadcrumb",
+    noun: "Shadcnパンくず",
+    category: "shadcn",
+    paletteIcon: "navigate_next",
+    w: 260,
+    h: 28,
+    radius: 4,
+    hasVariant: false,
+    hasLabel: false,
+    hasSupporting: false,
+    hasIcon: false,
+    defLabel: "",
+    defIcon: null,
+  },
 };
 
 export const KIND_ORDER: Kind[] = [
@@ -1507,6 +1555,9 @@ export const KIND_ORDER: Kind[] = [
   "shadcnTabs",
   "shadcnAlert",
   "shadcnTable",
+  "shadcnSkeleton",
+  "shadcnProgress",
+  "shadcnBreadcrumb",
 ];
 
 /* ---------- screen data ---------- */
@@ -1647,7 +1698,23 @@ export function actionsOf(it: Item): { slot: string; action: Action }[] {
 }
 
 /** kinds a user can tap in the preview */
-export const TAPPABLE: Kind[] = ["button", "iconButton", "fab", "extendedFab", "chip", "listItem", "card", "image", "text", "splitButton", "radio"];
+export const TAPPABLE: Kind[] = [
+  "button",
+  "iconButton",
+  "fab",
+  "extendedFab",
+  "chip",
+  "listItem",
+  "card",
+  "image",
+  "text",
+  "splitButton",
+  "radio",
+  "shadcnButton",
+  "shadcnCard",
+  "shadcnBadge",
+  "shadcnAvatar",
+];
 
 /** palette roles a user may pick as a background */
 export type ColorToken =
@@ -2147,6 +2214,15 @@ export function makeItem(kind: Kind): Item {
   }
   if (kind === "shadcnTable") {
     it.layer = createDefaultLayer("Table");
+  }
+  if (kind === "shadcnSkeleton") {
+    it.layer = createDefaultLayer("Skeleton");
+  }
+  if (kind === "shadcnProgress") {
+    it.layer = createDefaultLayer("Progress");
+  }
+  if (kind === "shadcnBreadcrumb") {
+    it.layer = createDefaultLayer("Breadcrumb");
   }
   return it;
 }

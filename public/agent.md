@@ -1,6 +1,6 @@
-# M3E Canvas: sketches from an AI agent (beta)
+# shadcn-canvas: sketches from an AI agent (beta)
 
-M3E Canvas (https://lnkiai.github.io/m3e-canvas/) is a browser editor for Material 3 Expressive screens. A design is one JSON document. You, the agent, write that document and hand it back; the person opens it on their canvas, refines it, and turns it into a prompt for a coding tool.
+shadcn-canvas (https://github.com/phuhoang06/shadcn-canvas) is a browser visual UI canvas for modern React screens with real shadcn/ui & Radix UI primitives. A design is one JSON document. You, the agent, write that document and hand it back; the person opens it on their canvas, refines it, and turns it into a prompt for a coding tool (Cursor / Claude Code) or exports standalone React TSX.
 
 This format is in beta. Fields may be added; existing ones keep their meaning.
 
@@ -18,7 +18,7 @@ To make the link:
 import { readFileSync } from "node:fs";
 import { deflateRawSync } from "node:zlib";
 const json = readFileSync(process.argv[2], "utf8");
-console.log("https://lnkiai.github.io/m3e-canvas/#docz=" + deflateRawSync(json).toString("base64url"));
+console.log("https://phuhoang06.github.io/shadcn-canvas/#docz=" + deflateRawSync(json).toString("base64url"));
 ```
 
 ```python
@@ -27,7 +27,7 @@ import sys, zlib, base64
 data = open(sys.argv[1], "rb").read()
 c = zlib.compressobj(9, zlib.DEFLATED, -15)          # raw deflate, no header
 raw = c.compress(data) + c.flush()
-print("https://lnkiai.github.io/m3e-canvas/#docz=" + base64.urlsafe_b64encode(raw).decode().rstrip("="))
+print("https://phuhoang06.github.io/shadcn-canvas/#docz=" + base64.urlsafe_b64encode(raw).decode().rstrip("="))
 ```
 
 The link is long (a few thousand characters for a few screens). That is expected; it carries the whole design and nothing is stored anywhere. If you fetched this guide from a different address than `https://lnkiai.github.io/m3e-canvas/agent.md`, build the link on that address instead (the app lives next to its guide).
@@ -131,6 +131,30 @@ Sizes are in dp; `size` is the width unless noted. Content width inside the phon
 | `loadingIndicator` | M3 Expressive loading indicator | `contained` | 48 × 48 |
 | `linearProgress` | linear progress | `value` or omit for indeterminate, `wavy`, `trackThickness` 2 to 16 (omit for 4) | 380 × 24 |
 | `circularProgress` | circular progress | `value` or omit, `wavy`, `trackThickness` 2 to 16, capped at a sixth of `size` | 48 × 48 |
+
+### Modern shadcn/ui Components (`kind` starts with `shadcn`)
+
+| kind | what it is | useful fields & props | default size |
+|---|---|---|---|
+| `shadcnButton` | Radix Button | `label`, `action`, `shadcnProps.buttonVariant`: `default` / `destructive` / `outline` / `secondary` / `ghost` / `link`, `buttonSize`: `default` / `sm` / `lg` / `icon` | 140 × 40 |
+| `shadcnCard` | Radix Card container | `label` (title), `supporting` (description), `action`, `shadcnProps.cardTitle`, `cardDescription`, `cardContent` | 320 × 180 |
+| `shadcnInput` | Text Input | `label` placeholder, `supporting` | 240 × 40 |
+| `shadcnSelect` | Radix Select Dropdown | `label` placeholder, `shadcnProps.selectOptions`: array of strings | 240 × 40 |
+| `shadcnDialog` | Radix Dialog Modal | `label` title, `supporting` description, `renderMode`: `"edit"` (inline artboard) / `"preview"` (modal portal) | 360 × 220 |
+| `shadcnSheet` | Slide Drawer (4-side) | `label` title, `supporting` description, `side`: `top` / `bottom` / `left` / `right` | 320 × 400 |
+| `shadcnTabs` | Radix Tabs | `tabs`: `[{ label, icon }]`, `selected` index | 340 × 120 |
+| `shadcnTable` | Data Table | Structured table with header & rows | 380 × 200 |
+| `shadcnAccordion`| Collapsible Accordion | `type`: `"single"` / `"multiple"`, items | 340 × 160 |
+| `shadcnBadge` | Status Badge | `label`, variant (`default` / `secondary` / `destructive` / `outline`) | 90 × 28 |
+| `shadcnAlert` | Notification Callout | `label` title, `supporting` description, `variant`: `default` / `destructive` | 340 × 80 |
+| `shadcnCheckbox` | Form Checkbox | `label`, `checked` | 160 × 32 |
+| `shadcnSwitch` | Toggle Switch | `label`, `checked` | 160 × 32 |
+| `shadcnSlider` | Range Slider | `value` 0-100 | 240 × 32 |
+| `shadcnRadioGroup`| Radio Selection | items, `value` | 180 × 80 |
+| `shadcnAvatar` | User Avatar | `label` fallback initials, `src` image URL | 40 × 40 |
+| `shadcnTooltip` | Anchor Tooltip | `label` trigger, `supporting` tooltip content | 120 × 40 |
+| `shadcnPopover` | Anchor Popover | `label` trigger, content container | 260 × 120 |
+| `shadcnDropdownMenu` | Dropdown Menu | trigger, items & submenu portals | 160 × 40 |
 
 For `navRail`, `railExpanded` is the initial state; the preview's menu button toggles it. With `railModal: true`, an expanded rail covers the content with a scrim while the body keeps a 96dp navigation slot. Otherwise, reserve the rail's current width beside the content. Keep `tabs`, `selected`, and `actions` on the same item in either state.
 Modal presentation requires the rail to be the only item in its group. The editor collapses modal rails and switches them to standard presentation when they are grouped with other items, including imported mixed groups. Ungroup the rail before enabling modal presentation again. The editor controls are desktop-only.

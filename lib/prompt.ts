@@ -1,5 +1,6 @@
 import { KIND_TEXT, Lang, SWIPE_TEXT, TRANSITION_TEXT, getLang } from "./i18n";
 import { constrainModalRails } from "./rail";
+import type { ComponentLayer } from "./registry/types";
 import {
   CONTENT_W,
   Place,
@@ -504,7 +505,233 @@ function boxCorners(it: Item, lang: Lang): string {
   return `corner radius ${t}dp top / ${b}dp bottom`;
 }
 
-const itemText = (it: Item, lang: Lang) => (lang === "ja" ? itemJa(it) : lang === "zh" ? itemZh(it) : lang === "ko" ? itemKo(it) : itemEn(it));
+function describeLayerNode(layer: ComponentLayer): string {
+  const type = layer.type;
+  const p = layer.props || {};
+
+  switch (type) {
+    case "Button": {
+      const text = typeof layer.children === "string" ? layer.children : (layer.name || "Button");
+      const v = p.variant && p.variant !== "default" ? ` variant="${p.variant}"` : "";
+      const s = p.size && p.size !== "default" ? ` size="${p.size}"` : "";
+      return `shadcn Button "${text}"${v}${s}`;
+    }
+    case "Badge": {
+      const text = typeof layer.children === "string" ? layer.children : (layer.name || "Badge");
+      const v = p.variant && p.variant !== "default" ? ` variant="${p.variant}"` : "";
+      return `shadcn Badge "${text}"${v}`;
+    }
+    case "Card": {
+      let title = "";
+      let desc = "";
+      const otherChildren: string[] = [];
+      if (Array.isArray(layer.children)) {
+        for (const c of layer.children) {
+          if (c.type === "CardHeader" && Array.isArray(c.children)) {
+            for (const hc of c.children) {
+              if (hc.type === "CardTitle") title = typeof hc.children === "string" ? hc.children : "";
+              if (hc.type === "CardDescription") desc = typeof hc.children === "string" ? hc.children : "";
+            }
+          } else if (c.type === "CardContent" && Array.isArray(c.children)) {
+            for (const cc of c.children) {
+              otherChildren.push(describeLayerNode(cc));
+            }
+          } else if (c.type === "CardFooter" && Array.isArray(c.children)) {
+            for (const fc of c.children) {
+              otherChildren.push(describeLayerNode(fc));
+            }
+          }
+        }
+      }
+      const titlePart = title ? ` Title "${title}"` : "";
+      const descPart = desc ? `, Description "${desc}"` : "";
+      const childrenPart = otherChildren.length > 0 ? `, containing: [${otherChildren.join(", ")}]` : "";
+      return `shadcn Card with${titlePart}${descPart}${childrenPart}`;
+    }
+    case "Dialog": {
+      let title = "";
+      let desc = "";
+      let trigger = "Open Dialog";
+      if (Array.isArray(layer.children)) {
+        for (const c of layer.children) {
+          if (c.type === "DialogTrigger" && Array.isArray(c.children) && c.children[0]) {
+            trigger = describeLayerNode(c.children[0]);
+          } else if (c.type === "DialogContent" && Array.isArray(c.children)) {
+            for (const dc of c.children) {
+              if (dc.type === "DialogHeader" && Array.isArray(dc.children)) {
+                for (const dh of dc.children) {
+                  if (dh.type === "DialogTitle") title = typeof dh.children === "string" ? dh.children : "";
+                  if (dh.type === "DialogDescription") desc = typeof dh.children === "string" ? dh.children : "";
+                }
+              }
+            }
+          }
+        }
+      }
+      return `shadcn Dialog modal (triggered by ${trigger}) titled "${title || "Dialog"}" with description "${desc || ""}"`;
+    }
+    case "Sheet": {
+      const side = p.side || "right";
+      let title = "";
+      let desc = "";
+      if (Array.isArray(layer.children)) {
+        for (const c of layer.children) {
+          if (c.type === "SheetContent" && Array.isArray(c.children)) {
+            for (const sc of c.children) {
+              if (sc.type === "SheetHeader" && Array.isArray(sc.children)) {
+                for (const sh of sc.children) {
+                  if (sh.type === "SheetTitle") title = typeof sh.children === "string" ? sh.children : "";
+                  if (sh.type === "SheetDescription") desc = typeof sh.children === "string" ? sh.children : "";
+                }
+              }
+            }
+          }
+        }
+      }
+      return `shadcn Sheet drawer (side="${side}") titled "${title || "Sheet"}" with description "${desc || ""}"`;
+    }
+    case "Accordion": {
+      const accType = p.type || "single";
+      const items: string[] = [];
+      if (Array.isArray(layer.children)) {
+        for (const item of layer.children) {
+          if (item.type === "AccordionItem" && Array.isArray(item.children)) {
+            const trig = item.children.find((c) => c.type === "AccordionTrigger");
+            const trigText = trig && typeof trig.children === "string" ? trig.children : "Item";
+            items.push(`"${trigText}"`);
+          }
+        }
+      }
+      return `shadcn Accordion (type="${accType}", collapsible) with items: [${items.join(", ")}]`;
+    }
+    case "Tabs": {
+      const defVal = p.defaultValue || p.value || "";
+      const tabs: string[] = [];
+      if (Array.isArray(layer.children)) {
+        for (const c of layer.children) {
+          if (c.type === "TabsList" && Array.isArray(c.children)) {
+            for (const t of c.children) {
+              if (t.type === "TabsTrigger") {
+                const label = typeof t.children === "string" ? t.children : (t.props?.value || "Tab");
+                tabs.push(`"${label}"`);
+              }
+            }
+          }
+        }
+      }
+      return `shadcn Tabs component (tabs: [${tabs.join(", ")}], default: "${defVal}")`;
+    }
+    case "Table": {
+      const heads: string[] = [];
+      if (Array.isArray(layer.children)) {
+        for (const c of layer.children) {
+          if (c.type === "TableHeader" && Array.isArray(c.children)) {
+            for (const r of c.children) {
+              if (r.type === "TableRow" && Array.isArray(r.children)) {
+                for (const h of r.children) {
+                  if (h.type === "TableHead") {
+                    heads.push(typeof h.children === "string" ? h.children : "Col");
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      return `shadcn Table with columns: [${heads.join(", ")}] and sample data rows`;
+    }
+    case "Alert": {
+      const v = p.variant && p.variant !== "default" ? ` variant="${p.variant}"` : "";
+      let title = "";
+      let desc = "";
+      if (Array.isArray(layer.children)) {
+        for (const c of layer.children) {
+          if (c.type === "AlertTitle") title = typeof c.children === "string" ? c.children : "";
+          if (c.type === "AlertDescription") desc = typeof c.children === "string" ? c.children : "";
+        }
+      }
+      return `shadcn Alert${v} with title "${title}" and description "${desc}"`;
+    }
+    case "Input": {
+      const t = p.type || "text";
+      const ph = p.placeholder ? ` placeholder="${p.placeholder}"` : "";
+      return `shadcn Input (type="${t}"${ph})`;
+    }
+    case "Textarea": {
+      const ph = p.placeholder ? ` placeholder="${p.placeholder}"` : "";
+      return `shadcn Textarea (${ph})`;
+    }
+    case "Select": {
+      const ph = p.placeholder || p.selectPlaceholder || "Select option";
+      return `shadcn Select dropdown (placeholder="${ph}")`;
+    }
+    case "Checkbox": {
+      const label = typeof layer.children === "string" ? layer.children : (layer.name || "");
+      const checked = p.defaultChecked ?? p.checked;
+      return `shadcn Checkbox "${label}" (initially ${checked ? "checked" : "unchecked"})`;
+    }
+    case "Switch": {
+      const label = typeof layer.children === "string" ? layer.children : (layer.name || "");
+      const checked = p.defaultChecked ?? p.checked;
+      return `shadcn Switch "${label}" (initially ${checked ? "on" : "off"})`;
+    }
+    case "Slider": {
+      const val = p.defaultValue ?? [50];
+      return `shadcn Slider (min=${p.min ?? 0}, max=${p.max ?? 100}, defaultValue=${JSON.stringify(val)})`;
+    }
+    case "RadioGroup": {
+      return `shadcn RadioGroup with items (defaultValue="${p.defaultValue ?? ""}")`;
+    }
+    case "Label": {
+      const text = typeof layer.children === "string" ? layer.children : (layer.name || "Label");
+      return `shadcn Label "${text}"`;
+    }
+    case "Avatar": {
+      return `shadcn Avatar with image and fallback`;
+    }
+    case "Separator": {
+      return `shadcn Separator (${p.orientation || "horizontal"})`;
+    }
+    case "DropdownMenu": {
+      return `shadcn DropdownMenu with trigger button and menu items`;
+    }
+    case "Tooltip": {
+      return `shadcn Tooltip overlay on hover`;
+    }
+    case "Popover": {
+      return `shadcn Popover popup with trigger and content`;
+    }
+    case "Skeleton": {
+      return `shadcn Skeleton placeholder for loading state`;
+    }
+    case "Progress": {
+      return `shadcn Progress bar (value=${p.value ?? 60}%)`;
+    }
+    case "Breadcrumb": {
+      return `shadcn Breadcrumb navigation path`;
+    }
+    default: {
+      const text = typeof layer.children === "string" ? layer.children : "";
+      return `shadcn ${type}${text ? ` "${text}"` : ""}`;
+    }
+  }
+}
+
+function describeShadcnItem(it: Item, lang: Lang): string {
+  if (it.layer) {
+    return describeLayerNode(it.layer);
+  }
+  const label = it.label ? ` "${it.label}"` : "";
+  const noun = KIND_TEXT[lang]?.[it.kind]?.noun ?? it.kind;
+  return `${noun}${label}`;
+}
+
+const itemText = (it: Item, lang: Lang) => {
+  if (it.layer || (typeof it.kind === "string" && it.kind.startsWith("shadcn"))) {
+    return describeShadcnItem(it, lang);
+  }
+  return lang === "ja" ? itemJa(it) : lang === "zh" ? itemZh(it) : lang === "ko" ? itemKo(it) : itemEn(it);
+};
 
 /* ================= connected runs ================= */
 
@@ -1453,7 +1680,7 @@ export function buildPrompt(doc: Doc, widths: Record<string, number>, onlyFrameI
     .filter((s): s is string => !!s);
 
   const title = only ? ph.titleOnly(q(only.name || ph.screen)) : doc.title.trim() || ph.titleAll(frames.length);
-  lines.push(ph.intro(title, doc.brief.trim()));
+  lines.push(ph.intro(title, doc.brief?.trim() || ""));
   lines.push(ph.target(viewport, platform, th.dark, th.bothModes));
   lines.push(ph.platform(platform));
   lines.push(ph.sketch);
@@ -1518,6 +1745,17 @@ export function buildPrompt(doc: Doc, widths: Record<string, number>, onlyFrameI
   lines.push("");
   lines.push(ph.hGeneral);
   for (const s of GENERAL[lang]) lines.push(`- ${typeof s === "function" ? s(platform) : s}`);
+
+  const hasShadcn = kindsUsed.some((k) => k.startsWith("shadcn")) || groups.some((g) => g.items.some((it) => !!it.layer));
+  if (hasShadcn) {
+    lines.push("");
+    lines.push("## Tech Stack & Vibe Coding Guidelines");
+    lines.push("- Target Framework: Next.js 15+ (App Router), React 19, TypeScript");
+    lines.push("- Styling: Tailwind CSS v4, HSL CSS variables");
+    lines.push("- UI Library: shadcn/ui primitives (@radix-ui, class-variance-authority, clsx, tailwind-merge)");
+    lines.push("- Icons: lucide-react");
+    lines.push("- Architecture: Implement components in @/components/ui/ directory, keep state uncontrolled (defaultValue, defaultChecked, defaultOpen) for robust modularity.");
+  }
   return lines.join("\n");
 }
 

@@ -100,6 +100,7 @@ import { LoadingIndicator } from "@/components/Loading";
 import { draftDesign } from "@/lib/ai";
 import { ShareDialog } from "@/components/ShareMenu";
 import { ExportModal } from "@/components/ExportModal";
+import { createTemplateScreen, type TemplateKey } from "@/lib/templates";
 import { ColorPanel } from "@/components/ColorPanel";
 import { MotionPanel, ShapePanel, TypePanel } from "@/components/ThemePanel";
 import { ThemeContext, ensureFontLoaded, ensureLangFontLoaded } from "@/lib/theme";
@@ -2385,6 +2386,30 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
     }
   };
 
+  const addTemplateFrame = (key: TemplateKey) => {
+    snapshot();
+    const base = framesRef.current[0];
+    const { frame: f, groups: gs } = createTemplateScreen(
+      key,
+      nextFrameX(),
+      base?.y ?? 0
+    );
+    setFrames((fs) => [...fs, f]);
+    setGroups((current) => [...current, ...gs]);
+    setSelectedFrameId(f.id);
+    setSelectedIds([]);
+    const r = canvasRect();
+    if (r) {
+      const z = viewRef.current.z;
+      const { w, h } = frameSizeOf(f);
+      setView({
+        x: r.width / 2 - (f.x + w / 2) * z,
+        y: r.height / 2 - (f.y + h / 2) * z,
+        z,
+      });
+    }
+  };
+
   const patchFrame = (id: string, patch: Partial<Frame>) => {
     snapshotFor("frame:" + id + ":" + Object.keys(patch).join(","));
     setFrames((fs) => fs.map((f) => (f.id === id ? { ...f, ...patch } : f)));
@@ -3881,6 +3906,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
               if (groupsRef.current.length || framesRef.current.length) setConfirmClear(true);
             }}
             onAddFrame={addFrame}
+            onAddTemplate={addTemplateFrame}
             onPreview={() => openPreview()}
             tidy={selectedIds.length > 1 ? undefined : tidyState ?? undefined}
             onTidy={tidyTarget ? () => tidy(tidyTarget) : undefined}

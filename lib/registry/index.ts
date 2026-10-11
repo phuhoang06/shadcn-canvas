@@ -57,7 +57,7 @@ export function createDefaultLayer(type: string, customProps?: Record<string, an
     id: generateId(type.toLowerCase()),
     name: type,
     type,
-    props: { ...customProps },
+    props: { ...(entry.defaultProps ?? {}), ...customProps },
     children: cloneChildren(entry.defaultChildren),
   };
 }

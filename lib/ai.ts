@@ -28,12 +28,13 @@ export const providerSpec = (k: Provider) => PROVIDERS.find((p) => p.key === k) 
 
 export const DEFAULT_AI: AiSettings = { provider: PROVIDERS[0].key, baseUrl: PROVIDERS[0].baseUrl, model: PROVIDERS[0].model, key: "" };
 
-const STORE_KEY = "m3e:ai";
+const STORE_KEY = "shadcn:ai";
+const LEGACY_STORE_KEY = "m3e:ai";
 
 export function loadAiSettings(): AiSettings {
   const s = { ...DEFAULT_AI };
   try {
-    const raw = localStorage.getItem(STORE_KEY);
+    const raw = localStorage.getItem(STORE_KEY) || localStorage.getItem(LEGACY_STORE_KEY);
     if (raw) {
       const v = JSON.parse(raw) as Partial<AiSettings>;
       if (PROVIDERS.some((p) => p.key === v.provider)) s.provider = v.provider as Provider;
@@ -150,6 +151,7 @@ const itemsOnFrame = (doc: Doc, frame: Frame, widths: Record<string, number>): I
 
 const describeItem = (it: Item) => {
   const bits = [`id=${it.id}`, `kind=${it.kind}`];
+  if (it.layer?.type) bits.push(`component=${it.layer.type}`);
   if (hasText(it.label)) bits.push(`label=${JSON.stringify(it.label)}`);
   if (hasText(it.supporting)) bits.push(`supporting=${JSON.stringify(it.supporting)}`);
   if (it.icon) bits.push(`icon=${it.icon}`);
@@ -162,7 +164,7 @@ const describeItem = (it: Item) => {
 
 const context = (doc: Doc, widths: Record<string, number>, frame: Frame, lang: Lang) =>
   [
-    "The author is sketching a Material 3 Expressive app. Below is the generated description of the whole design, then the screen to work on.",
+    "The author is sketching a modern React web application with Next.js, Tailwind CSS and shadcn/ui. Below is the generated description of the whole design, then the screen to work on.",
     "",
     "=== Whole design ===",
     buildPrompt(doc, widths, undefined, lang),
@@ -170,7 +172,7 @@ const context = (doc: Doc, widths: Record<string, number>, frame: Frame, lang: L
     `=== Screen to work on: ${JSON.stringify(frame.name || "(unnamed)")} ===`,
   ].join("\n");
 
-const SYSTEM = "You help an app designer finish a sketch. Answer with a single JSON object and nothing else: no prose, no markdown fence.";
+const SYSTEM = "You help an app designer finish a sketch using modern React and shadcn/ui components. Answer with a single JSON object and nothing else: no prose, no markdown fence.";
 
 /** picks the strings the model returned for exactly the parts asked about */
 function pickStrings(v: unknown, parts: Item[], max: number): Record<string, string> {
@@ -241,7 +243,7 @@ export function popHistory<V extends string, H extends string>(current: string |
  *  The answer is the document itself; a link would be pointless here. */
 export async function draftDesign(s: AiSettings, guide: string, idea: string, lang: Lang, signal?: AbortSignal): Promise<Doc> {
   const system = [
-    "You draft M3E Canvas designs. Follow the guide below exactly.",
+    "You draft shadcn-canvas designs with real shadcn/ui components (such as shadcnButton, shadcnCard, shadcnInput, shadcnDialog, shadcnTable, shadcnTabs, shadcnBadge, shadcnSelect). Follow the guide below exactly.",
     "Reply with the JSON document only: no share link, no prose, no markdown fence, no explanation.",
     "",
     guide,

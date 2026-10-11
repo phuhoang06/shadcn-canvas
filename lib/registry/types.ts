@@ -41,6 +41,7 @@ export interface RegistryEntry<T extends ReactComponentType<any> = ReactComponen
   schema: ZodObject<any> | ZodSchema<any>;
   from?: string;
   isFromDefaultExport?: boolean;
+  defaultProps?: Record<string, any>;
   defaultChildren?: ComponentLayer[] | string;
   fieldOverrides?: Record<string, FieldConfigFunction>;
   childOf?: string[];

@@ -94,6 +94,17 @@ import {
   TableCell,
   TableCaption,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+} from "@/components/ui/breadcrumb";
 
 export const componentRegistry: ComponentRegistry = {
   // ============================================
@@ -1301,5 +1312,133 @@ export const componentRegistry: ComponentRegistry = {
     from: "@/components/ui/table",
     childOf: ["Table"],
     defaultChildren: "A list of recent invoices.",
+  },
+
+  // ============================================
+  // SKELETON & PROGRESS
+  // ============================================
+  Skeleton: {
+    component: Skeleton,
+    schema: z.object({
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/skeleton",
+    defaultProps: {
+      className: "h-4 w-full",
+    },
+    defaultChildren: [],
+  },
+  Progress: {
+    component: Progress,
+    schema: z.object({
+      className: z.string().optional(),
+      value: z.number().optional(),
+      max: z.number().optional(),
+    }),
+    from: "@/components/ui/progress",
+    defaultProps: {
+      value: 60,
+    },
+    defaultChildren: [],
+  },
+
+  // ============================================
+  // BREADCRUMB
+  // ============================================
+  Breadcrumb: {
+    component: Breadcrumb,
+    schema: z.object({
+      className: z.string().optional(),
+    }),
+    from: "@/components/ui/breadcrumb",
+    defaultChildren: [
+      {
+        id: "bc-list-1",
+        name: "BreadcrumbList",
+        type: "BreadcrumbList",
+        props: {},
+        children: [
+          {
+            id: "bc-item-1",
+            name: "BreadcrumbItem",
+            type: "BreadcrumbItem",
+            props: {},
+            children: [
+              {
+                id: "bc-link-1",
+                name: "BreadcrumbLink",
+                type: "BreadcrumbLink",
+                props: { href: "#" },
+                children: "Home",
+              },
+            ],
+          },
+          {
+            id: "bc-sep-1",
+            name: "BreadcrumbSeparator",
+            type: "BreadcrumbSeparator",
+            props: {},
+            children: [],
+          },
+          {
+            id: "bc-item-2",
+            name: "BreadcrumbItem",
+            type: "BreadcrumbItem",
+            props: {},
+            children: [
+              {
+                id: "bc-page-1",
+                name: "BreadcrumbPage",
+                type: "BreadcrumbPage",
+                props: {},
+                children: "Dashboard",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  BreadcrumbList: {
+    component: BreadcrumbList,
+    schema: z.object({ className: z.string().optional() }),
+    from: "@/components/ui/breadcrumb",
+    childOf: ["Breadcrumb"],
+    defaultChildren: [],
+  },
+  BreadcrumbItem: {
+    component: BreadcrumbItem,
+    schema: z.object({ className: z.string().optional() }),
+    from: "@/components/ui/breadcrumb",
+    childOf: ["BreadcrumbList"],
+    defaultChildren: [],
+  },
+  BreadcrumbLink: {
+    component: BreadcrumbLink,
+    schema: z.object({ href: z.string().optional(), className: z.string().optional() }),
+    from: "@/components/ui/breadcrumb",
+    childOf: ["BreadcrumbItem"],
+    defaultChildren: "Link",
+  },
+  BreadcrumbPage: {
+    component: BreadcrumbPage,
+    schema: z.object({ className: z.string().optional() }),
+    from: "@/components/ui/breadcrumb",
+    childOf: ["BreadcrumbItem"],
+    defaultChildren: "Page",
+  },
+  BreadcrumbSeparator: {
+    component: BreadcrumbSeparator,
+    schema: z.object({ className: z.string().optional() }),
+    from: "@/components/ui/breadcrumb",
+    childOf: ["BreadcrumbList"],
+    defaultChildren: [],
+  },
+  BreadcrumbEllipsis: {
+    component: BreadcrumbEllipsis,
+    schema: z.object({ className: z.string().optional() }),
+    from: "@/components/ui/breadcrumb",
+    childOf: ["BreadcrumbItem"],
+    defaultChildren: [],
   },
 };

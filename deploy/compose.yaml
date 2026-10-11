@@ -1,0 +1,20 @@
+services:
+  shadcn-canvas:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: shadcn-canvas:latest
+    container_name: shadcn-canvas
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:80"
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -95,6 +95,17 @@ import {
   TableCell,
   TableCaption,
 } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+} from "@/components/ui/breadcrumb";
 import { usePopperZoom } from "./PopperZoomAdapter";
 import { cn } from "@/lib/utils";
 
@@ -912,6 +923,69 @@ export function HierarchicalNodeRenderer({
   }
   if (layer.type === "TableCaption") {
     return <TableCaption className={props.className} onClick={handleLayerClick}>{renderChildren()}</TableCaption>;
+  }
+
+  // 21. SKELETON
+  if (layer.type === "Skeleton") {
+    return (
+      <Skeleton
+        className={cn("h-4 w-full", props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      />
+    );
+  }
+
+  // 22. PROGRESS
+  if (layer.type === "Progress") {
+    return (
+      <Progress
+        value={props.value ?? 60}
+        max={props.max ?? 100}
+        className={cn("w-full", props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      />
+    );
+  }
+
+  // 23. BREADCRUMB & SUB-COMPONENTS
+  if (layer.type === "Breadcrumb") {
+    return (
+      <Breadcrumb
+        className={cn(props.className, isSelected && "ring-2 ring-blue-500")}
+        onClick={handleLayerClick}
+      >
+        {renderChildren()}
+      </Breadcrumb>
+    );
+  }
+  if (layer.type === "BreadcrumbList") {
+    return <BreadcrumbList className={props.className} onClick={handleLayerClick}>{renderChildren()}</BreadcrumbList>;
+  }
+  if (layer.type === "BreadcrumbItem") {
+    return <BreadcrumbItem className={props.className} onClick={handleLayerClick}>{renderChildren()}</BreadcrumbItem>;
+  }
+  if (layer.type === "BreadcrumbLink") {
+    return (
+      <BreadcrumbLink
+        href={props.href ?? "#"}
+        className={props.className}
+        onClick={(e) => {
+          e.preventDefault();
+          handleLayerClick(e);
+        }}
+      >
+        {renderChildren()}
+      </BreadcrumbLink>
+    );
+  }
+  if (layer.type === "BreadcrumbPage") {
+    return <BreadcrumbPage className={props.className} onClick={handleLayerClick}>{renderChildren()}</BreadcrumbPage>;
+  }
+  if (layer.type === "BreadcrumbSeparator") {
+    return <BreadcrumbSeparator className={props.className} onClick={handleLayerClick}>{renderChildren()}</BreadcrumbSeparator>;
+  }
+  if (layer.type === "BreadcrumbEllipsis") {
+    return <BreadcrumbEllipsis className={props.className} onClick={handleLayerClick} />;
   }
 
   // Fallback cho text hoặc HTML tag

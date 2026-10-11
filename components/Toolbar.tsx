@@ -7,10 +7,11 @@ import { ShareButton } from "./ShareMenu";
 import { Icon } from "./M3Node";
 import { Popover } from "./Menus";
 import { t, useLang } from "@/lib/i18n";
+import { TEMPLATES, type TemplateKey } from "@/lib/templates";
 
 export type Mode = "select" | "hand";
 
-const REPO_URL = "https://github.com/lnkiai/m3e-canvas";
+const REPO_URL = "https://github.com/phuhoang06/shadcn-canvas";
 
 export function GitHubLink({ p, size = 40 }: { p: Palette; size?: number }) {
   return (
@@ -73,6 +74,7 @@ export function Toolbar({
   onRedo,
   onClear,
   onAddFrame,
+  onAddTemplate,
   onPreview,
   rightInset,
   mobile,
@@ -108,6 +110,7 @@ export function Toolbar({
   onRedo: () => void;
   onClear: () => void;
   onAddFrame: () => void;
+  onAddTemplate?: (key: TemplateKey) => void;
   onPreview: () => void;
   /** width of the open right panel, so the zoom pill slides out of its way */
   rightInset: number;
@@ -366,13 +369,55 @@ export function Toolbar({
 
         <Pill p={p}>
           {frame === "phone" && (
-            <IconBtn
-              icon="add_to_photos"
-              p={p}
-              onClick={onAddFrame}
-              title={t("addFrame", lang)}
-              size={40}
-            />
+            <>
+              <IconBtn
+                icon="add_to_photos"
+                p={p}
+                onClick={onAddFrame}
+                title={t("addFrame", lang)}
+                size={40}
+              />
+              {onAddTemplate && (
+                <Popover p={p} icon="dashboard_customize" title="Add screen template">
+                  {(close) => (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 260, padding: 6 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, padding: "4px 8px", color: p.onSurfaceVariant, textTransform: "uppercase" }}>
+                        Screen Templates
+                      </div>
+                      {TEMPLATES.map((tpl) => (
+                        <button
+                          key={tpl.key}
+                          onClick={() => {
+                            close();
+                            onAddTemplate(tpl.key);
+                          }}
+                          className="m3-press"
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            padding: "8px 10px",
+                            borderRadius: 12,
+                            border: "none",
+                            background: "transparent",
+                            color: p.onSurface,
+                            cursor: "pointer",
+                            textAlign: "left",
+                            fontSize: 13,
+                          }}
+                        >
+                          <Icon name={tpl.icon} size={20} />
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{tpl.name}</div>
+                            <div style={{ fontSize: 11, color: p.onSurfaceVariant }}>{tpl.description}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </Popover>
+              )}
+            </>
           )}
           <IconBtn
             icon="play_arrow"
