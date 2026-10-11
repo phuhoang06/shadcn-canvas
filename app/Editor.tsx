@@ -848,9 +848,24 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
       y: (clientY - (r?.top ?? 0) - v.y) / v.z,
     };
   };
-  /* only the open left panel accepts a drop for deletion; the narrow rail never does */
-  const inBin = (clientX: number) =>
-    !mobileRef.current && leftOpenRef.current && clientX >= 0 && clientX <= leftWRef.current;
+  /* drag to delete: checks bottom floating trash bin zone (any device) OR left sidebar/rail (desktop) */
+  const inBin = (clientX: number, clientY: number) => {
+    const winH = typeof window !== "undefined" ? window.innerHeight : 800;
+    const winW = typeof window !== "undefined" ? window.innerWidth : 1200;
+    // 1. Bottom floating trash bin zone
+    const isBottomTrash =
+      clientY >= winH - 110 &&
+      Math.abs(clientX - winW / 2) <= 170;
+    if (isBottomTrash) return true;
+
+    // 2. Left panel or collapsed rail
+    if (!mobileRef.current) {
+      const leftBoundary = leftOpenRef.current ? leftWRef.current : RAIL_W;
+      if (clientX >= 0 && clientX <= leftBoundary + 24) return true;
+    }
+
+    return false;
+  };
 
   const setZoomAt = useCallback((nz: number, cx?: number, cy?: number) => {
     const r = canvasRect();
@@ -1313,8 +1328,8 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
         return;
       }
 
-      /* a part being added from the palette has nothing to delete yet; dropping it back there just cancels */
-      d.overBin = !d.fromPalette && inBin(e.clientX);
+      /* a part being dropped into the trash zone is deleted or cancels palette drop */
+      d.overBin = inBin(e.clientX, e.clientY);
       d.snap =
         d.overBin || ctrlHeld
           ? null
@@ -1344,6 +1359,9 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
       if (d.overBin) {
         setSelectedIds((cur) => cur.filter((x) => x !== item.id));
         setDrag(null);
+        if (!d.fromPalette) {
+          showToast(t("itemDeleted", lang), 2000, "delete");
+        }
         return;
       }
 
@@ -1607,7 +1625,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
           snapshot();
         }
         instantRef.current.add(g.id);
-        g.overBin = inBin(e.clientX);
+        g.overBin = inBin(e.clientX, e.clientY);
         const gr = groupsRef.current.find((x) => x.id === g.id);
         if (!gr) return;
         /* a moved group lines up with its neighbours like a single part does, and off
@@ -1682,10 +1700,11 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
       const g = gestureRef.current;
       gestureRef.current = null;
       setGesture(null);
-      // a group dragged onto the parts panel is deleted, like a single part
-      if (g?.kind === "group" && g.moved && inBin(e.clientX)) {
+      // a group dragged onto the trash zone or parts panel is deleted
+      if (g?.kind === "group" && g.moved && inBin(e.clientX, e.clientY)) {
         setGroups((gs) => gs.filter((x) => x.id !== g.id));
         setSelectedIds([]);
+        showToast(t("itemDeleted", lang), 2000, "delete");
       }
     };
     window.addEventListener("pointermove", move);
@@ -3140,7 +3159,15 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
           animate={{ x: g.x - ox, y: g.y - oy }}
           transition={instantG ? INSTANT : OPEN}
           /* keep any selection lift inside the group, so canvas-wide layer order is preserved */
-          style={{ position: "absolute", left: 0, top: 0, zIndex: modalRail ? 2 : undefined, isolation: "isolate" }}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: 0,
+            zIndex: modalRail ? 2 : undefined,
+            isolation: "isolate",
+            opacity: gesture?.kind === "group" && gesture.id === g.id && gesture.overBin ? 0.35 : undefined,
+            filter: gesture?.kind === "group" && gesture.id === g.id && gesture.overBin ? "drop-shadow(0 0 14px rgba(239, 68, 68, 0.85))" : undefined,
+          }}
         >
           {layoutOf(g, widths).map((pl) => (
             <div key={pl.item.id} style={{ position: "absolute", left: pl.x - g.x, top: pl.y - g.y }}>
@@ -3211,6 +3238,8 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
           gap: GAP,
           /* keep any selection lift inside the run, so canvas-wide layer order is preserved */
           isolation: "isolate",
+          opacity: gesture?.kind === "group" && gesture.id === g.id && gesture.overBin ? 0.35 : undefined,
+          filter: gesture?.kind === "group" && gesture.id === g.id && gesture.overBin ? "drop-shadow(0 0 14px rgba(239, 68, 68, 0.85))" : undefined,
         }}
       >
         {cells.map((c, r) => {
@@ -3279,6 +3308,7 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
   };
 
   const showRight = rightOpen && !isMobile;
+  const isElementDragging = Boolean(drag?.active || (gesture?.kind === "group" && gesture.moved));
   const overBin = (!!drag?.active && drag.overBin) || (gesture?.kind === "group" && gesture.overBin);
   const guide = drag?.active ? drag.guide : gesture?.kind === "group" && gesture.moved ? (gesture.guide ?? null) : null;
   const visibleWorld = (() => {
@@ -3382,8 +3412,9 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
             zIndex: 50,
           }}
           animate={{
-            opacity: drag.overBin ? 0.4 : 1,
-            scale: drag.overBin ? 0.84 : 1,
+            opacity: drag.overBin ? 0.35 : 1,
+            scale: drag.overBin ? 0.8 : 1,
+            filter: drag.overBin ? "drop-shadow(0 0 14px rgba(239, 68, 68, 0.85))" : "none",
           }}
           transition={{
             type: "spring",
@@ -4021,6 +4052,64 @@ export default function Editor({ initialLang, onReady }: { initialLang: Lang; on
                   }}
                 />
               </BottomSheet>
+            )}
+          </AnimatePresence>
+
+          {/* Floating Trash Zone when dragging an item or group */}
+          <AnimatePresence>
+            {isElementDragging && (
+              <motion.div
+                initial={{ opacity: 0, y: 35, scale: 0.9 }}
+                animate={{
+                  opacity: 1,
+                  y: 0,
+                  scale: overBin ? 1.08 : 1,
+                }}
+                exit={{ opacity: 0, y: 35, scale: 0.9 }}
+                transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                style={{
+                  position: "fixed",
+                  left: "50%",
+                  bottom: isMobile ? 32 : 28,
+                  transform: "translateX(-50%)",
+                  zIndex: 70,
+                  pointerEvents: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  height: 52,
+                  padding: "0 22px",
+                  borderRadius: 26,
+                  background: overBin ? p.error : p.surfaceContainerHigh,
+                  color: overBin ? p.onError : p.error,
+                  border: `2px ${overBin ? "solid" : "dashed"} ${p.error}`,
+                  boxShadow: overBin
+                    ? "0 10px 28px rgba(239, 68, 68, 0.5), 0 0 0 4px rgba(239, 68, 68, 0.2)"
+                    : "0 4px 20px rgba(0, 0, 0, 0.15), 0 0 8px rgba(239, 68, 68, 0.15)",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  userSelect: "none",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 16,
+                    background: overBin ? "rgba(255, 255, 255, 0.22)" : p.errorContainer,
+                    color: overBin ? p.onError : p.onErrorContainer,
+                    display: "grid",
+                    placeItems: "center",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  <Icon name={overBin ? "delete_forever" : "delete"} size={20} />
+                </div>
+                <span>
+                  {overBin ? t("releaseToDelete", lang) : t("dragToDelete", lang)}
+                </span>
+              </motion.div>
             )}
           </AnimatePresence>
 

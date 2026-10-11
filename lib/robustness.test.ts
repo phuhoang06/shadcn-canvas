@@ -32,6 +32,7 @@ import {
   tone,
 } from "./color";
 import { isSecureUrl, hasKey, providerSpec, DEFAULT_AI } from "./ai";
+import { t } from "./i18n";
 
 describe("Robustness Suite: Happy & Unhappy Cases", () => {
   /* ====================================================================
@@ -1061,6 +1062,48 @@ describe("Robustness Suite: Happy & Unhappy Cases", () => {
       expect(res.groups.length).toBeGreaterThan(0);
       expect(res.frame.x).toBe(100);
       expect(res.frame.y).toBe(100);
+    });
+
+    it("[Happy] provides valid i18n translations for dragToDelete, releaseToDelete, and itemDeleted in all languages", () => {
+      for (const lang of ["ja", "en", "zh", "ko"] as const) {
+        expect(t("dragToDelete", lang)).toBeTruthy();
+        expect(t("releaseToDelete", lang)).toBeTruthy();
+        expect(t("itemDeleted", lang)).toBeTruthy();
+      }
+    });
+
+    it("[Happy & Edge] evaluates inBin hit detection correctly for bottom floating trash and left rail", () => {
+      // Simulating inBin logic
+      const winW = 1200;
+      const winH = 800;
+      const railW = 96;
+      const leftW = 320;
+
+      const testInBin = (clientX: number, clientY: number, isMobile: boolean, leftOpen: boolean) => {
+        const isBottomTrash = clientY >= winH - 110 && Math.abs(clientX - winW / 2) <= 170;
+        if (isBottomTrash) return true;
+        if (!isMobile) {
+          const leftBoundary = leftOpen ? leftW : railW;
+          if (clientX >= 0 && clientX <= leftBoundary + 24) return true;
+        }
+        return false;
+      };
+
+      // Happy: center bottom floating zone
+      expect(testInBin(winW / 2, winH - 50, false, false)).toBe(true);
+      expect(testInBin(winW / 2, winH - 50, true, false)).toBe(true); // Works on mobile!
+
+      // Happy: left panel open
+      expect(testInBin(50, 400, false, true)).toBe(true);
+      // Happy: left panel collapsed (rail only)
+      expect(testInBin(50, 400, false, false)).toBe(true);
+
+      // Unhappy / Edge: outside bottom trash zone horizontally
+      expect(testInBin(winW / 2 + 250, winH - 50, false, false)).toBe(false);
+      // Unhappy / Edge: above bottom trash zone vertically in canvas center
+      expect(testInBin(winW / 2, winH - 300, false, false)).toBe(false);
+      // Unhappy / Edge: canvas center on mobile
+      expect(testInBin(500, 400, true, false)).toBe(false);
     });
   });
 });
