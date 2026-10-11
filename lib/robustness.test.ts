@@ -1,9 +1,37 @@
 import { describe, it, expect } from "vitest";
-import { Doc, Frame, Item, actionsOf, TAPPABLE, BACK_TARGET } from "./tokens";
+import {
+  Doc,
+  Frame,
+  Item,
+  Group,
+  actionsOf,
+  TAPPABLE,
+  BACK_TARGET,
+  frameOfGroup,
+  PHONE_W,
+  PHONE_H,
+  DESKTOP_W,
+  DESKTOP_H,
+} from "./tokens";
 import { buildPrompt } from "./prompt";
 import { generateTsx, toComponentName } from "./codegen";
-import { createDefaultLayer, getComponentDefinition } from "./registry";
+import {
+  createDefaultLayer,
+  getComponentDefinition,
+  listAvailableComponents,
+} from "./registry";
 import { createTemplateScreen, TEMPLATES } from "./templates";
+import { shareable, readShareHash, hasShareHash } from "./share";
+import { isProject, projectFileName } from "./project";
+import {
+  hexToRgb,
+  rgbToHex,
+  luminance,
+  onColorFor,
+  schemeFromSeed,
+  tone,
+} from "./color";
+import { isSecureUrl, hasKey, providerSpec, DEFAULT_AI } from "./ai";
 
 describe("Robustness Suite: Happy & Unhappy Cases", () => {
   /* ====================================================================
@@ -344,6 +372,658 @@ describe("Robustness Suite: Happy & Unhappy Cases", () => {
       for (const lang of ["en", "ja", "zh", "ko"] as const) {
         expect(() => buildPrompt(doc, {}, undefined, lang)).not.toThrow();
       }
+    });
+  });
+
+  /* ====================================================================
+   * 6. SHARE & SERIALIZATION EDGE CASES
+   * ==================================================================== */
+  describe("Share & Serialization Edge Cases", () => {
+    it("[Unhappy] readShareHash returns null on corrupted base64 in docz", async () => {
+      const res = await readShareHash("#docz=!!!invalid_base64_symbols!!!");
+      expect(res).toBeNull();
+    });
+
+    it("[Unhappy] readShareHash returns null on truncated/damaged compressed stream", async () => {
+      const res = await readShareHash("#docz=YWJjZGVmZw");
+      expect(res).toBeNull();
+    });
+
+    it("[Unhappy] readShareHash returns null on malformed JSON in doc param", async () => {
+      const res = await readShareHash("#doc={bad-json:broken");
+      expect(res).toBeNull();
+    });
+
+    it("[Unhappy] readShareHash returns null on valid JSON that fails isProject validation", async () => {
+      const res = await readShareHash('#doc={"title":"Test","notAProject":true}');
+      expect(res).toBeNull();
+    });
+
+    it("[Unhappy] readShareHash returns null when no doc hash parameter exists", async () => {
+      expect(await readShareHash("")).toBeNull();
+      expect(await readShareHash("#")).toBeNull();
+      expect(await readShareHash("#view=preview")).toBeNull();
+      expect(await readShareHash("#page=2")).toBeNull();
+    });
+
+    it("[Edge] shareable strips base64 data URIs and javascript: URLs from items but preserves https://", () => {
+      const doc: Doc = {
+        title: "Security Image App",
+        frame: "phone",
+        frames: [],
+        groups: [
+          {
+            id: "g1",
+            x: 0,
+            y: 0,
+            axis: "x",
+            items: [
+              {
+                id: "i1",
+                kind: "image",
+                label: "Base64 Image",
+                src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==",
+              },
+              {
+                id: "i2",
+                kind: "image",
+                label: "XSS Image",
+                src: "javascript:alert('xss')",
+              },
+              {
+                id: "i3",
+                kind: "image",
+                label: "Remote CDN Image",
+                src: "https://example.com/photo.png",
+              },
+            ],
+          },
+        ],
+      };
+
+      const sanitized = shareable(doc);
+      expect(sanitized.groups[0].items[0].src).toBeUndefined();
+      expect(sanitized.groups[0].items[1].src).toBeUndefined();
+      expect(sanitized.groups[0].items[2].src).toBe("https://example.com/photo.png");
+    });
+
+    it("[Edge] shareable strips noteHistory from frames and items", () => {
+      const doc: Doc = {
+        title: "History App",
+        frame: "phone",
+        frames: [
+          {
+            id: "f1",
+            name: "Screen",
+            x: 0,
+            y: 0,
+            note: "Active note",
+            noteHistory: ["Previous note draft 1", "Previous note draft 2"],
+          },
+        ],
+        groups: [
+          {
+            id: "g1",
+            x: 0,
+            y: 0,
+            axis: "x",
+            items: [
+              {
+                id: "i1",
+                kind: "button",
+                label: "Click",
+                note: "Button note",
+                noteHistory: ["Button old note"],
+              },
+            ],
+          },
+        ],
+      };
+
+      const sanitized = shareable(doc);
+      expect((sanitized.frames[0] as any).noteHistory).toBeUndefined();
+      expect((sanitized.groups[0].items[0] as any).noteHistory).toBeUndefined();
+      expect(sanitized.frames[0].note).toBe("Active note");
+    });
+
+    it("[Edge] hasShareHash returns true only when #doc= or #docz= is present", () => {
+      expect(hasShareHash("#doc=1")).toBe(true);
+      expect(hasShareHash("#docz=1")).toBe(true);
+      expect(hasShareHash("docz=1")).toBe(true);
+      expect(hasShareHash("#")).toBe(false);
+      expect(hasShareHash("")).toBe(false);
+      expect(hasShareHash("#unrelated=xyz")).toBe(false);
+    });
+  });
+
+  /* ====================================================================
+   * 7. PROJECT SCHEMA & DESERIALIZATION EDGE CASES
+   * ==================================================================== */
+  describe("Project Schema & Deserialization Edge Cases", () => {
+    it("[Unhappy] isProject rejects primitives and non-record values", () => {
+      expect(isProject(null)).toBe(false);
+      expect(isProject(undefined)).toBe(false);
+      expect(isProject("string")).toBe(false);
+      expect(isProject(12345)).toBe(false);
+      expect(isProject(true)).toBe(false);
+      expect(isProject([])).toBe(false);
+    });
+
+    it("[Unhappy] isProject rejects projects with non-finite group coordinates (NaN, Infinity)", () => {
+      const docWithNan = {
+        title: "Test",
+        frames: [],
+        groups: [
+          {
+            id: "g1",
+            x: NaN,
+            y: 0,
+            axis: "x",
+            items: [{ id: "i1", kind: "button", label: "A", icon: null, variant: "filled" }],
+          },
+        ],
+      };
+      expect(isProject(docWithNan)).toBe(false);
+
+      const docWithInfinity = {
+        title: "Test",
+        frames: [],
+        groups: [
+          {
+            id: "g1",
+            x: 0,
+            y: Infinity,
+            axis: "x",
+            items: [{ id: "i1", kind: "button", label: "A", icon: null, variant: "filled" }],
+          },
+        ],
+      };
+      expect(isProject(docWithInfinity)).toBe(false);
+    });
+
+    it("[Unhappy] isProject rejects groups with invalid axis or empty items array", () => {
+      const docEmptyItems = {
+        title: "Test",
+        frames: [],
+        groups: [{ id: "g1", x: 0, y: 0, axis: "x", items: [] }],
+      };
+      expect(isProject(docEmptyItems)).toBe(false);
+
+      const docInvalidAxis = {
+        title: "Test",
+        frames: [],
+        groups: [
+          {
+            id: "g1",
+            x: 0,
+            y: 0,
+            axis: "z" as any,
+            items: [{ id: "i1", kind: "button", label: "A", icon: null, variant: "filled" }],
+          },
+        ],
+      };
+      expect(isProject(docInvalidAxis)).toBe(false);
+    });
+
+    it("[Unhappy] isProject rejects items with unknown kinds or unsupported variants", () => {
+      const docBadKind = {
+        title: "Test",
+        frames: [],
+        groups: [
+          {
+            id: "g1",
+            x: 0,
+            y: 0,
+            axis: "x",
+            items: [{ id: "i1", kind: "maliciousTag" as any, label: "A", icon: null, variant: "filled" }],
+          },
+        ],
+      };
+      expect(isProject(docBadKind)).toBe(false);
+
+      const docBadVariant = {
+        title: "Test",
+        frames: [],
+        groups: [
+          {
+            id: "g1",
+            x: 0,
+            y: 0,
+            axis: "x",
+            items: [{ id: "i1", kind: "button", label: "A", icon: null, variant: "superSpecial" as any }],
+          },
+        ],
+      };
+      expect(isProject(docBadVariant)).toBe(false);
+    });
+
+    it("[Unhappy] isProject rejects items with non-finite corner radii (NaN)", () => {
+      const docBadCorners = {
+        title: "Test",
+        frames: [],
+        groups: [
+          {
+            id: "g1",
+            x: 0,
+            y: 0,
+            axis: "x",
+            items: [
+              {
+                id: "i1",
+                kind: "button",
+                label: "A",
+                icon: null,
+                variant: "filled",
+                corners: { tl: NaN, tr: 0, bl: 0, br: 0 } as any,
+              },
+            ],
+          },
+        ],
+      };
+      expect(isProject(docBadCorners)).toBe(false);
+    });
+
+    it("[Edge] projectFileName sanitizes reserved OS file characters into clean name", () => {
+      const doc = {
+        title: 'my/illegal:name*with?chars"and<arrows>|pipe',
+        frame: "phone",
+        frames: [],
+        groups: [],
+      } as Doc;
+      const fname = projectFileName(doc);
+      expect(fname).toBe("m3e-canvas my illegal name with chars and arrows pipe.json");
+
+      expect(projectFileName({ title: "   ", frame: "phone", frames: [], groups: [] } as Doc)).toBe("m3e-canvas.json");
+    });
+  });
+
+  /* ====================================================================
+   * 8. COLOR ENGINE & PALETTE BOUNDARY CASES
+   * ==================================================================== */
+  describe("Color Engine & Palette Boundary Cases", () => {
+    it("[Unhappy] hexToRgb returns null for malformed or non-6-digit hex strings", () => {
+      expect(hexToRgb("")).toBeNull();
+      expect(hexToRgb("not-a-color")).toBeNull();
+      expect(hexToRgb("#fff")).toBeNull();
+      expect(hexToRgb("#12345678")).toBeNull();
+      expect(hexToRgb("#gggggg")).toBeNull();
+    });
+
+    it("[Unhappy] onColorFor gracefully defaults to black (#000000) on invalid hex input", () => {
+      expect(onColorFor("invalid")).toBe("#000000");
+      expect(onColorFor("")).toBe("#000000");
+    });
+
+    it("[Unhappy] luminance gracefully handles invalid hex by returning 0", () => {
+      expect(luminance("corrupted")).toBe(0);
+      expect(luminance("")).toBe(0);
+    });
+
+    it("[Edge] rgbToHex clamps out-of-gamut RGB values (<0 or >255)", () => {
+      expect(rgbToHex(-50, -100, -255)).toBe("#000000");
+      expect(rgbToHex(300, 999, 10000)).toBe("#FFFFFF");
+      expect(rgbToHex(100, 150, 200)).toBe("#6496C8");
+    });
+
+    it("[Edge] schemeFromSeed falls back to default purple when given invalid seed hex", () => {
+      const palette = schemeFromSeed("not-a-hex", "Fallback Test");
+      expect(palette.key).toBe("custom");
+      expect(palette.label).toBe("Fallback Test");
+      expect(palette.primary).toMatch(/^#[0-9A-F]{6}$/i);
+      expect(palette.surface).toMatch(/^#[0-9A-F]{6}$/i);
+      expect(palette.error).toBe("#B3261E");
+    });
+
+    it("[Edge] tone safely computes extreme luminance values (L=0 black, L=100 white)", () => {
+      expect(tone(0, 0, 0)).toBe("#000000");
+      expect(tone(100, 0, 0)).toBe("#FFFFFF");
+    });
+  });
+
+  /* ====================================================================
+   * 9. ADVANCED CODEGEN & AST INVARIANTS
+   * ==================================================================== */
+  describe("Advanced Codegen & AST Invariants", () => {
+    it("[Unhappy] generateTsx handles layer with empty/null children without error", () => {
+      const item: Item = {
+        id: "b1",
+        kind: "shadcnButton",
+        label: "Empty",
+        variant: "filled",
+        layer: {
+          id: "l1",
+          type: "Button",
+          props: { variant: "outline" },
+          children: [],
+        },
+      };
+      const doc: Doc = {
+        title: "App",
+        frame: "phone",
+        frames: [{ id: "f1", name: "Screen", x: 0, y: 0 }],
+        groups: [{ id: "g1", x: 0, y: 0, axis: "x", items: [item] }],
+      };
+      const tsx = generateTsx(doc, "f1");
+      expect(tsx).toContain("<Button");
+      expect(tsx).toContain('variant="outline"');
+    });
+
+    it("[Edge] generateTsx serializes deeply nested component hierarchy cleanly", () => {
+      const nestedCardLayer = createDefaultLayer("Card");
+      nestedCardLayer.children = [
+        {
+          id: "hdr-1",
+          type: "CardHeader",
+          props: {},
+          children: [
+            {
+              id: "ttl-1",
+              type: "CardTitle",
+              props: {},
+              children: [
+                {
+                  id: "bdg-1",
+                  type: "Badge",
+                  props: { variant: "secondary" },
+                  children: "VIP Member",
+                },
+              ],
+            },
+          ],
+        },
+      ];
+
+      const item: Item = {
+        id: "c1",
+        kind: "shadcnCard",
+        label: "VIP Card",
+        variant: "filled",
+        layer: nestedCardLayer,
+      };
+
+      const doc: Doc = {
+        title: "Nested App",
+        frame: "phone",
+        frames: [{ id: "f1", name: "Profile", x: 0, y: 0 }],
+        groups: [{ id: "g1", x: 0, y: 0, axis: "x", items: [item] }],
+      };
+
+      const tsx = generateTsx(doc, "f1");
+      expect(tsx).toContain("<Card");
+      expect(tsx).toContain("<CardHeader");
+      expect(tsx).toContain("<CardTitle");
+      expect(tsx).toContain("<Badge");
+      expect(tsx).toContain("VIP Member");
+      expect(tsx).toContain('import { Badge } from "@/components/ui/badge";');
+      expect(tsx).toContain('import { Card, CardHeader, CardTitle } from "@/components/ui/card";');
+    });
+
+    it("[Edge] generateTsx deduplicates imports when multiple items use the same component", () => {
+      const items: Item[] = [
+        { id: "b1", kind: "shadcnButton", label: "Btn 1", layer: createDefaultLayer("Button") },
+        { id: "b2", kind: "shadcnButton", label: "Btn 2", layer: createDefaultLayer("Button") },
+        { id: "b3", kind: "shadcnButton", label: "Btn 3", layer: createDefaultLayer("Button") },
+        { id: "bg1", kind: "shadcnBadge", label: "Badge 1", layer: createDefaultLayer("Badge") },
+        { id: "bg2", kind: "shadcnBadge", label: "Badge 2", layer: createDefaultLayer("Badge") },
+      ];
+
+      const doc: Doc = {
+        title: "Dedupe App",
+        frame: "phone",
+        frames: [{ id: "f1", name: "List", x: 0, y: 0 }],
+        groups: [{ id: "g1", x: 0, y: 0, axis: "x", items }],
+      };
+
+      const tsx = generateTsx(doc, "f1");
+      const buttonImportCount = (tsx.match(/import \{ Button \} from "@\/components\/ui\/button";/g) || []).length;
+      const badgeImportCount = (tsx.match(/import \{ Badge \} from "@\/components\/ui\/badge";/g) || []).length;
+
+      expect(buttonImportCount).toBe(1);
+      expect(badgeImportCount).toBe(1);
+    });
+
+    it("[Edge] generateTsx handles multi-frame document and extracts only items in target frame", () => {
+      const f1: Frame = { id: "home-frame", name: "Home", x: 0, y: 0 };
+      const f2: Frame = { id: "settings-frame", name: "Settings", x: 600, y: 0 };
+
+      const homeLayer = createDefaultLayer("Button");
+      homeLayer.children = "Home Button Action";
+      const homeItem: Item = {
+        id: "btn-home",
+        kind: "shadcnButton",
+        label: "Home Button Action",
+        layer: homeLayer,
+      };
+      const settingsLayer = createDefaultLayer("Button");
+      settingsLayer.children = "Settings Toggle Action";
+      const settingsItem: Item = {
+        id: "btn-settings",
+        kind: "shadcnButton",
+        label: "Settings Toggle Action",
+        layer: settingsLayer,
+      };
+
+      const doc: Doc = {
+        title: "Multi Screen App",
+        frame: "phone",
+        frames: [f1, f2],
+        groups: [
+          { id: "g-home", x: 50, y: 50, axis: "x", items: [homeItem] },
+          { id: "g-settings", x: 650, y: 50, axis: "x", items: [settingsItem] },
+        ],
+      };
+
+      const homeTsx = generateTsx(doc, "home-frame");
+      expect(homeTsx).toContain("export default function HomeScreen()");
+      expect(homeTsx).toContain("Home Button Action");
+      expect(homeTsx).not.toContain("Settings Toggle Action");
+
+      const settingsTsx = generateTsx(doc, "settings-frame");
+      expect(settingsTsx).toContain("export default function Settings()");
+      expect(settingsTsx).toContain("Settings Toggle Action");
+      expect(settingsTsx).not.toContain("Home Button Action");
+    });
+
+    it("[Edge] generateTsx safely escapes unicode, quotes, and emoji characters in labels", () => {
+      const specialItem: Item = {
+        id: "b-spec",
+        kind: "shadcnButton",
+        label: '🚀 "VIP Deal" <50% OFF> & {Save} 💎',
+        variant: "filled",
+      };
+
+      const doc: Doc = {
+        title: "Emoji App",
+        frame: "phone",
+        frames: [{ id: "f1", name: "Promo", x: 0, y: 0 }],
+        groups: [{ id: "g1", x: 0, y: 0, axis: "x", items: [specialItem] }],
+      };
+
+      const tsx = generateTsx(doc, "f1");
+      expect(tsx).toContain("🚀");
+      expect(tsx).toContain("{'<'}50% OFF{'>'}");
+      expect(tsx).toContain("{'{'}Save{'}'}");
+      expect(tsx).not.toContain("<50% OFF>");
+    });
+  });
+
+  /* ====================================================================
+   * 10. AI HELPER & PROMPT EDGE CASES
+   * ==================================================================== */
+  describe("AI Helper & Prompt Edge Cases", () => {
+    it("[Unhappy] isSecureUrl rejects insecure remote HTTP URLs but permits localhost and HTTPS", () => {
+      expect(isSecureUrl("http://api.openai.com/v1")).toBe(false);
+      expect(isSecureUrl("http://my-remote-ai.internal:8000")).toBe(false);
+      expect(isSecureUrl("https://api.openai.com/v1")).toBe(true);
+      expect(isSecureUrl("http://localhost:11434")).toBe(true);
+      expect(isSecureUrl("http://127.0.0.1:8000")).toBe(true);
+      expect(isSecureUrl("http://[::1]:8080")).toBe(true);
+    });
+
+    it("[Unhappy] hasKey requires key for remote servers but allows local servers without key", () => {
+      expect(
+        hasKey({ provider: "openai", baseUrl: "https://api.openai.com/v1", model: "gpt-4", key: "" })
+      ).toBe(false);
+      expect(
+        hasKey({ provider: "openai", baseUrl: "https://api.openai.com/v1", model: "gpt-4", key: "sk-123" })
+      ).toBe(true);
+      expect(
+        hasKey({ provider: "openai", baseUrl: "http://localhost:11434", model: "llama3", key: "" })
+      ).toBe(true);
+    });
+
+    it("[Unhappy] providerSpec returns default provider when given an unknown provider key", () => {
+      const fallback = providerSpec("unknown-ai" as any);
+      expect(fallback).toBeDefined();
+      expect(fallback.key).toBe("openai");
+    });
+
+    it("[Edge] buildPrompt formats 4-directional swipe gestures without crashing", () => {
+      const f1: Frame = {
+        id: "f1",
+        name: "Main",
+        x: 0,
+        y: 0,
+        swipe: { left: "f2", right: "f3", up: "f4", down: "f5" },
+      };
+      const f2: Frame = { id: "f2", name: "Feed", x: 500, y: 0 };
+      const f3: Frame = { id: "f3", name: "Menu", x: -500, y: 0 };
+      const f4: Frame = { id: "f4", name: "Search", x: 0, y: -900 };
+      const f5: Frame = { id: "f5", name: "Notifications", x: 0, y: 900 };
+
+      const doc: Doc = {
+        title: "Swipe App",
+        frame: "phone",
+        frames: [f1, f2, f3, f4, f5],
+        groups: [],
+      };
+
+      for (const lang of ["en", "ja", "zh", "ko"] as const) {
+        expect(() => buildPrompt(doc, {}, undefined, lang)).not.toThrow();
+        const prompt = buildPrompt(doc, {}, undefined, lang);
+        expect(prompt).toContain("Feed");
+        expect(prompt).toContain("Menu");
+      }
+    });
+
+    it("[Edge] buildPrompt handles all transition variants without error", () => {
+      const transitions = ["slide", "slideLeft", "slideUp", "slideDown", "fade", "instant", "none"] as const;
+
+      for (const tr of transitions) {
+        const item: Item = {
+          id: `btn-${tr}`,
+          kind: "shadcnButton",
+          label: `Go with ${tr}`,
+          action: { to: "target-frame", transition: tr },
+        };
+
+        const doc: Doc = {
+          title: "Transition App",
+          frame: "phone",
+          frames: [
+            { id: "source", name: "Source", x: 0, y: 0 },
+            { id: "target-frame", name: "Target", x: 600, y: 0 },
+          ],
+          groups: [{ id: "g1", x: 50, y: 50, axis: "x", items: [item] }],
+        };
+
+        expect(() => buildPrompt(doc, {}, undefined, "en")).not.toThrow();
+        const p = buildPrompt(doc, {}, undefined, "en");
+        expect(p).toContain("Target");
+      }
+    });
+  });
+
+  /* ====================================================================
+   * 11. CANVAS GEOMETRY & HIT-TESTING EDGE CASES
+   * ==================================================================== */
+  describe("Canvas Geometry & Hit-Testing Edge Cases", () => {
+    it("[Unhappy] frameOfGroup returns undefined when group center is outside all frames", () => {
+      const f: Frame = { id: "f1", name: "Screen", x: 0, y: 0 };
+      const g: Group = {
+        id: "g-far",
+        x: 5000,
+        y: 5000,
+        axis: "x",
+        items: [{ id: "i1", kind: "button", label: "Far", icon: null, variant: "filled" }],
+      };
+
+      expect(frameOfGroup(g, [f], {})).toBeUndefined();
+    });
+
+    it("[Unhappy] frameOfGroup returns undefined when frames array is empty", () => {
+      const g: Group = {
+        id: "g1",
+        x: 10,
+        y: 10,
+        axis: "x",
+        items: [{ id: "i1", kind: "button", label: "Here", icon: null, variant: "filled" }],
+      };
+
+      expect(frameOfGroup(g, [], {})).toBeUndefined();
+    });
+
+    it("[Edge] frameOfGroup matches correctly against desktop frame dimensions", () => {
+      const deskFrame: Frame = {
+        id: "f-desk",
+        name: "Desktop Screen",
+        x: 1000,
+        y: 0,
+        w: DESKTOP_W,
+        h: DESKTOP_H,
+      };
+
+      const g: Group = {
+        id: "g-desk",
+        x: 1800,
+        y: 500,
+        axis: "x",
+        items: [{ id: "i1", kind: "button", label: "Desktop Button", icon: null, variant: "filled" }],
+      };
+
+      const matched = frameOfGroup(g, [deskFrame], {});
+      expect(matched).toBeDefined();
+      expect(matched?.id).toBe("f-desk");
+    });
+
+    it("[Edge] actionsOf and TAPPABLE handle items with no actions or non-tappable kinds", () => {
+      const noActionItem: Item = {
+        id: "i-none",
+        kind: "shadcnButton",
+        label: "Static",
+        action: undefined,
+        actions: { "slot-a": undefined as any },
+      };
+      expect(actionsOf(noActionItem)).toEqual([]);
+
+      // Verify TAPPABLE set contains interactive kinds and excludes static/non-tappable kinds
+      expect(TAPPABLE.includes("divider")).toBe(false);
+      expect(TAPPABLE.includes("loadingIndicator")).toBe(false);
+      expect(TAPPABLE.includes("shadcnButton")).toBe(true);
+      expect(TAPPABLE.includes("shadcnCard")).toBe(true);
+      expect(TAPPABLE.includes("shadcnBadge")).toBe(true);
+      expect(TAPPABLE.includes("shadcnAvatar")).toBe(true);
+    });
+
+    it("[Edge] listAvailableComponents includes all new primitives and existing registry types", () => {
+      const list = listAvailableComponents();
+      expect(list).toContain("Breadcrumb");
+      expect(list).toContain("Skeleton");
+      expect(list).toContain("Progress");
+      expect(list).toContain("Button");
+      expect(list).toContain("Card");
+      expect(list).toContain("Dialog");
+      expect(list).toContain("Select");
+      expect(list).toContain("Table");
+      expect(list.length).toBeGreaterThanOrEqual(15);
+    });
+
+    it("[Unhappy] createTemplateScreen gracefully handles unknown template key by falling back to settings", () => {
+      const res = createTemplateScreen("unsupported" as any, 100, 100);
+      expect(res.frame).toBeDefined();
+      expect(res.groups.length).toBeGreaterThan(0);
+      expect(res.frame.x).toBe(100);
+      expect(res.frame.y).toBe(100);
     });
   });
 });
