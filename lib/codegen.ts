@@ -28,7 +28,7 @@ export function toComponentName(name?: string): string {
  * Escapes characters that have special meaning in JSX text content.
  */
 function escapeJsxText(text: string): string {
-  return text.replace(/[{}]/g, (m) => `{'${m}'}`);
+  return text.replace(/[<>{}]/g, (m) => `{'${m}'}`);
 }
 
 /**
