@@ -146,6 +146,36 @@ describe("Robustness Suite: Happy & Unhappy Cases", () => {
       const prompt = buildPrompt(doc, {}, undefined, "en");
       expect(prompt).toContain('opens the "LoopScreen" screen');
     });
+
+    // Happy Case 3: Toast notification action
+    it("[Happy] supports toast notification actions", () => {
+      const btn: Item = {
+        id: "btn-toast",
+        kind: "shadcnButton",
+        label: "Add to Cart",
+        action: { to: "Added to cart successfully!", type: "toast" },
+      };
+
+      const actions = actionsOf(btn);
+      expect(actions).toHaveLength(1);
+      expect(actions[0].action.type).toBe("toast");
+      expect(actions[0].action.to).toBe("Added to cart successfully!");
+    });
+
+    // Happy Case 4: External web URL action
+    it("[Happy] supports external web URL actions", () => {
+      const btn: Item = {
+        id: "btn-url",
+        kind: "shadcnButton",
+        label: "Visit Docs",
+        action: { to: "https://ui.shadcn.com", type: "url" },
+      };
+
+      const actions = actionsOf(btn);
+      expect(actions).toHaveLength(1);
+      expect(actions[0].action.type).toBe("url");
+      expect(actions[0].action.to).toBe("https://ui.shadcn.com");
+    });
   });
 
   /* ====================================================================
@@ -165,6 +195,13 @@ describe("Robustness Suite: Happy & Unhappy Cases", () => {
       const layer = createDefaultLayer("Breadcrumb");
       expect(layer.type).toBe("Breadcrumb");
       expect(layer.children).toBeInstanceOf(Array);
+    });
+
+    it("[Happy] creates Button with ProMax variants (gradient, success, warning, glow)", () => {
+      for (const variant of ["gradient", "success", "warning", "glow"] as const) {
+        const layer = createDefaultLayer("Button", { variant });
+        expect(layer.props.variant).toBe(variant);
+      }
     });
 
     // Unhappy Case 1: Unknown component type in createDefaultLayer
@@ -188,7 +225,7 @@ describe("Robustness Suite: Happy & Unhappy Cases", () => {
    * ==================================================================== */
   describe("Template Library", () => {
     // Happy Case: Creates all templates with valid coordinates
-    it.each(["auth", "dashboard", "settings"] as const)(
+    it.each(["auth", "dashboard", "settings", "ecommerce", "pricing", "chat"] as const)(
       "[Happy] creates '%s' template with valid geometry and items",
       (key) => {
         const { frame, groups } = createTemplateScreen(key, 1200, 400);

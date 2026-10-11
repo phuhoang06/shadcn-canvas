@@ -502,7 +502,17 @@ export type Kind =
   | "shadcnProgress"
   | "shadcnBreadcrumb";
 
-export type ShadcnButtonVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
+export type ShadcnButtonVariant =
+  | "default"
+  | "destructive"
+  | "outline"
+  | "secondary"
+  | "ghost"
+  | "link"
+  | "gradient"
+  | "success"
+  | "warning"
+  | "glow";
 export type ShadcnButtonSize = "default" | "sm" | "lg" | "icon";
 export type ShadcnProps = {
   buttonVariant?: ShadcnButtonVariant;
@@ -596,6 +606,7 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     h: H,
     radius: R_FULL,
     hasVariant: true,
+    hasFill: true,
     hasLabel: true,
     hasSupporting: false,
     hasIcon: true,
@@ -1163,6 +1174,7 @@ export const KIND_SPEC: Record<Kind, KindSpec> = {
     h: 40,
     radius: 6,
     hasVariant: false,
+    hasFill: true,
     hasLabel: true,
     hasSupporting: false,
     hasIcon: false,
@@ -1659,7 +1671,13 @@ export const SLIDE_SPEC: Partial<Record<Transition, { axis: "x" | "y"; enter: nu
 };
 
 export type Transition = "slide" | "slideLeft" | "slideUp" | "slideDown" | "fade" | "expand" | "none";
-export type Action = { to: string; transition: Transition };
+export type ActionType = "navigate" | "toast" | "url";
+export type Action = {
+  to: string;
+  transition: Transition;
+  type?: ActionType;
+  toastTitle?: string;
+};
 
 export const TRANSITIONS: { key: Transition; label: string; icon: string }[] = [
   { key: "slide", label: "Slide from right", icon: "arrow_back" },

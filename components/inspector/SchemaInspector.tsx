@@ -133,8 +133,12 @@ export function SchemaInspector({ item, onChange, palette: p }: SchemaInspectorP
                   fontSize: 13,
                 }}
               >
-                <option value="default">default</option>
-                <option value="destructive">destructive</option>
+                <option value="default">default (Primary)</option>
+                <option value="gradient">✨ gradient (ProMax)</option>
+                <option value="success">🟢 success (Emerald)</option>
+                <option value="warning">🟠 warning (Amber)</option>
+                <option value="glow">🌟 glow (Accent Shadow)</option>
+                <option value="destructive">destructive (Danger)</option>
                 <option value="outline">outline</option>
                 <option value="secondary">secondary</option>
                 <option value="ghost">ghost</option>

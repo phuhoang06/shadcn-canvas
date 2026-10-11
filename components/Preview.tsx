@@ -814,16 +814,35 @@ export function Preview({
     setStack(s.slice(0, -1));
   }, [spring, sameSize]);
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 2500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
   const go = useCallback(
     (a: Action) => {
       if (swiped.current) return;
+      if (a.type === "toast" || a.to.startsWith("toast:")) {
+        const msg = a.to.startsWith("toast:") ? a.to.slice(6) : a.to;
+        setToastMessage(msg || "Thao tác thành công!");
+        return;
+      }
+      if (a.type === "url" || /^https?:\/\//i.test(a.to)) {
+        if (typeof window !== "undefined") {
+          window.open(a.to, "_blank");
+        }
+        return;
+      }
       if (a.to === BACK_TARGET) {
         back();
         return;
       }
       if (!frames.some((f) => f.id === a.to)) return;
       const s = stackRef.current;
-      const t = sameSize(s[s.length - 1].id, a.to) ? a.transition : "fade";
+      const t = sameSize(s[s.length - 1].id, a.to) ? (a.transition ?? "slide") : "fade";
       setAnim({ t, back: false, spring });
       setStack((cur) => [...cur, { id: a.to, t }]);
     },
@@ -1104,6 +1123,36 @@ export function Preview({
                 }}
               >
                 <Screen {...screenProps} active={false} frame={peekFrame} groups={peekGroups} />
+              </motion.div>
+            )}
+
+            {toastMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 15, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -10, scale: 0.96 }}
+                style={{
+                  position: "absolute",
+                  bottom: 28,
+                  left: 20,
+                  right: 20,
+                  zIndex: 99,
+                  background: "rgba(15, 23, 42, 0.94)",
+                  backdropFilter: "blur(12px)",
+                  color: "#ffffff",
+                  padding: "12px 18px",
+                  borderRadius: 16,
+                  boxShadow: "0 12px 30px rgba(0,0,0,0.35)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  pointerEvents: "none",
+                }}
+              >
+                <div style={{ width: 24, height: 24, borderRadius: "50%", background: "#10b981", display: "grid", placeItems: "center", flexShrink: 0 }}>
+                  <Icon name="check" size={16} color="#ffffff" />
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, lineHeight: 1.4, flex: 1 }}>{toastMessage}</div>
               </motion.div>
             )}
           </motion.div>

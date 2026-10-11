@@ -314,7 +314,7 @@ function TransitionPicker({ value, onChange, p }: { value: Transition; onChange:
   );
 }
 
-/** target frame (or back) plus the transition, for one tap target */
+/** target frame (or back) plus transition, toast message, or external URL */
 function ActionEditor({
   frames,
   action,
@@ -326,17 +326,80 @@ function ActionEditor({
   onChange: (a: Action | undefined) => void;
   p: Palette;
 }) {
+  const currentType: "navigate" | "toast" | "url" =
+    action?.type ??
+    (action?.to?.startsWith("http://") || action?.to?.startsWith("https://")
+      ? "url"
+      : action?.to?.startsWith("toast:")
+      ? "toast"
+      : "navigate");
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <FrameChips
-        frames={frames}
-        value={action?.to ?? null}
-        onChange={(to) => onChange(to ? { to, transition: action?.transition ?? "slide" } : undefined)}
+      <Segmented<"navigate" | "toast" | "url">
+        options={[
+          { key: "navigate", label: "Screen", icon: "arrow_forward" },
+          { key: "toast", label: "Toast", icon: "notifications" },
+          { key: "url", label: "Link", icon: "open_in_new" },
+        ]}
+        value={currentType}
+        onChange={(type) => {
+          if (type === "navigate") {
+            const firstFrame = frames[0]?.id;
+            onChange(firstFrame ? { to: firstFrame, transition: "slide", type: "navigate" } : undefined);
+          } else if (type === "toast") {
+            onChange({ to: action?.type === "toast" ? action.to : "Thao tác thành công!", transition: "none", type: "toast" });
+          } else if (type === "url") {
+            onChange({ to: action?.type === "url" ? action.to : "https://", transition: "none", type: "url" });
+          }
+        }}
         p={p}
-        back
+        height={32}
       />
-      {action && action.to !== BACK_TARGET && (
-        <TransitionPicker value={action.transition} onChange={(transition) => onChange({ ...action, transition })} p={p} />
+
+      {currentType === "navigate" && (
+        <>
+          <FrameChips
+            frames={frames}
+            value={action?.to ?? null}
+            onChange={(to) => onChange(to ? { to, transition: action?.transition ?? "slide", type: "navigate" } : undefined)}
+            p={p}
+            back
+          />
+          {action && action.to !== BACK_TARGET && (
+            <TransitionPicker
+              value={action.transition ?? "slide"}
+              onChange={(transition) => onChange({ ...action, transition, type: "navigate" })}
+              p={p}
+            />
+          )}
+        </>
+      )}
+
+      {currentType === "toast" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>Toast Notification Message</div>
+          <Field
+            value={action?.to ?? "Thao tác thành công!"}
+            onChange={(to) => onChange({ to, transition: "none", type: "toast" })}
+            placeholder="Ví dụ: Đã thêm vào giỏ hàng thành công!"
+            p={p}
+            icon="notifications"
+          />
+        </div>
+      )}
+
+      {currentType === "url" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, color: p.onSurfaceVariant }}>External Web URL</div>
+          <Field
+            value={action?.to ?? "https://"}
+            onChange={(to) => onChange({ to, transition: "none", type: "url" })}
+            placeholder="https://example.com"
+            p={p}
+            icon="link"
+          />
+        </div>
       )}
     </div>
   );

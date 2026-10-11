@@ -1250,6 +1250,7 @@ function boxStyle(item: Item, p: Palette): React.CSSProperties {
     case "iconButton":
     case "fab":
     case "extendedFab":
+      if (item.fill) return { background: p[item.fill], color: onToken(item.fill, p), border: "none" };
       return variantStyle(item.variant, p);
     case "chip":
       if (item.checked) return { background: p.secondaryContainer, color: p.onSecondaryContainer, border: "none" };

@@ -115,7 +115,18 @@ export const componentRegistry: ComponentRegistry = {
     schema: z.object({
       className: z.string().optional(),
       variant: z
-        .enum(["default", "destructive", "outline", "secondary", "ghost", "link"])
+        .enum([
+          "default",
+          "destructive",
+          "outline",
+          "secondary",
+          "ghost",
+          "link",
+          "gradient",
+          "success",
+          "warning",
+          "glow",
+        ])
         .default("default"),
       size: z.enum(["default", "sm", "lg", "icon"]).default("default"),
       disabled: z.boolean().optional(),

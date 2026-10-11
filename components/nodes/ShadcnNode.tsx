@@ -16,7 +16,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import type { Item, Palette } from "@/lib/tokens";
+import { Item, Palette, onToken } from "@/lib/tokens";
 import { HierarchicalNodeRenderer } from "@/components/renderers/HierarchicalNodeRenderer";
 
 export interface ShadcnNodeProps {
@@ -44,6 +44,7 @@ export function ShadcnNode({ item, palette: _palette, interactive }: ShadcnNodeP
           variant={item.shadcnProps?.buttonVariant ?? "default"}
           size={item.shadcnProps?.buttonSize ?? "default"}
           interactive={interactive}
+          style={item.fill ? { background: _palette[item.fill], color: onToken(item.fill, _palette) } : undefined}
         >
           {item.label || "Shadcn Button"}
         </Button>

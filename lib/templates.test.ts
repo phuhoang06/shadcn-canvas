@@ -6,8 +6,15 @@ import { Doc } from "./tokens";
 
 describe("Template / Preset Library", () => {
   it("provides list of available templates", () => {
-    expect(TEMPLATES).toHaveLength(3);
-    expect(TEMPLATES.map((t) => t.key)).toEqual(["auth", "dashboard", "settings"]);
+    expect(TEMPLATES).toHaveLength(6);
+    expect(TEMPLATES.map((t) => t.key)).toEqual([
+      "auth",
+      "dashboard",
+      "settings",
+      "ecommerce",
+      "pricing",
+      "chat",
+    ]);
   });
 
   it("creates valid auth screen with inputs, checkbox, card, and button", () => {
@@ -69,6 +76,63 @@ describe("Template / Preset Library", () => {
     expect(tsx).toContain("Settings");
     expect(tsx).toContain("Avatar");
     expect(tsx).toContain("Switch");
+    expect(tsx).toContain("Button");
+  });
+
+  it("creates valid ecommerce product screen with sale badges and CTA buttons", () => {
+    const { frame, groups } = createTemplateScreen("ecommerce", 0, 0);
+    expect(frame.name).toBe("Product Detail");
+    expect(groups.length).toBeGreaterThanOrEqual(4);
+
+    const doc: Doc = {
+      title: "Ecommerce Template Test",
+      frame: "phone",
+      frames: [frame],
+      groups,
+    };
+
+    const tsx = generateTsx(doc, frame.id);
+    expect(tsx).toContain("ProductDetail");
+    expect(tsx).toContain("Breadcrumb");
+    expect(tsx).toContain("Badge");
+    expect(tsx).toContain("Button");
+  });
+
+  it("creates valid pricing plans screen with tiered cards", () => {
+    const { frame, groups } = createTemplateScreen("pricing", 0, 0);
+    expect(frame.name).toBe("Pricing Plans");
+    expect(groups.length).toBeGreaterThanOrEqual(4);
+
+    const doc: Doc = {
+      title: "Pricing Template Test",
+      frame: "phone",
+      frames: [frame],
+      groups,
+    };
+
+    const tsx = generateTsx(doc, frame.id);
+    expect(tsx).toContain("PricingPlans");
+    expect(tsx).toContain("Card");
+    expect(tsx).toContain("Button");
+  });
+
+  it("creates valid chat messenger screen with avatar and message cards", () => {
+    const { frame, groups } = createTemplateScreen("chat", 0, 0);
+    expect(frame.name).toBe("Messenger Chat");
+    expect(groups.length).toBeGreaterThanOrEqual(3);
+
+    const doc: Doc = {
+      title: "Chat Template Test",
+      frame: "phone",
+      frames: [frame],
+      groups,
+    };
+
+    const tsx = generateTsx(doc, frame.id);
+    expect(tsx).toContain("MessengerChat");
+    expect(tsx).toContain("Avatar");
+    expect(tsx).toContain("Card");
+    expect(tsx).toContain("Input");
     expect(tsx).toContain("Button");
   });
 });
