@@ -1,17 +1,14 @@
 services:
   shadcn-canvas:
-    build:
-      context: ..
-      dockerfile: Dockerfile
-    image: shadcn-canvas:latest
+    image: ${REGISTRY_IMAGE:-git.musongoku.id.vn:5050/personal-projects/canvas}:${IMAGE_TAG}
     container_name: shadcn-canvas
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:80"
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 5s
+      interval: 10s
+      timeout: 3s
       retries: 3
     logging:
       driver: "json-file"
