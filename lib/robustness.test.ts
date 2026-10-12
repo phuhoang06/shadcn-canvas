@@ -1107,7 +1107,7 @@ describe("Robustness Suite: Happy & Unhappy Cases", () => {
       expect(testInBin(500, 400, true, false)).toBe(false);
     });
 
-    it("[Happy & Edge] actionSlotsOf extracts child buttons for splitButton, card, dialog, and snackbar", () => {
+    it("[Happy & Edge] actionSlotsOf extracts child buttons for splitButton and tabs without bloating cards or dialogs", () => {
       const splitBtn: Item = {
         id: "sb-1",
         kind: "splitButton",
@@ -1120,14 +1120,26 @@ describe("Robustness Suite: Happy & Unhappy Cases", () => {
       expect(splitSlots[0].label).toContain("Xuất file");
       expect(splitSlots[1].key).toBe("arrow");
 
+      const tabsItem: Item = {
+        id: "tab-1",
+        kind: "tabs",
+        tabs: [{ label: "Overview" }, { label: "Analytics" }],
+      };
+      const tabsSlots = actionSlotsOf(tabsItem);
+      expect(tabsSlots).toHaveLength(2);
+      expect(tabsSlots[0].key).toBe("tab:0");
+      expect(tabsSlots[0].label).toBe("Overview");
+      expect(tabsSlots[1].key).toBe("tab:1");
+      expect(tabsSlots[1].label).toBe("Analytics");
+
+      // Card and dialog should NOT have artificial child action slots cluttering the UI
       const cardItem: Item = {
         id: "card-1",
         kind: "shadcnCard",
         label: "Product",
         variant: "filled",
       };
-      const cardSlots = actionSlotsOf(cardItem);
-      expect(cardSlots.map((s) => s.key)).toEqual(["primary", "secondary", "card"]);
+      expect(actionSlotsOf(cardItem)).toEqual([]);
 
       const dialogItem: Item = {
         id: "dlg-1",
@@ -1135,8 +1147,7 @@ describe("Robustness Suite: Happy & Unhappy Cases", () => {
         label: "Confirm Dialog",
         variant: "filled",
       };
-      const dialogSlots = actionSlotsOf(dialogItem);
-      expect(dialogSlots.map((s) => s.key)).toEqual(["confirm", "cancel"]);
+      expect(actionSlotsOf(dialogItem)).toEqual([]);
     });
 
     it("[Happy] actionsOf correctly extracts both main action and all child button actions", () => {

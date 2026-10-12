@@ -1697,27 +1697,8 @@ export function actionSlotsOf(it: Item): IconSlot[] {
   if (it.kind === "tabs" || it.kind === "shadcnTabs") return (it.tabs ?? []).map((t, i) => ({ key: `tab:${i}`, label: t.label || `Tab ${i + 1}`, value: null }));
   if (it.kind === "splitButton") {
     return [
-      { key: "main", label: it.label?.trim() ? `Nút chính: ${it.label}` : "Nút chính", value: it.icon || "smart_button" },
-      { key: "arrow", label: "Nút mở rộng (Mũi tên)", value: "arrow_drop_down" },
-    ];
-  }
-  if (it.kind === "card" || it.kind === "shadcnCard") {
-    return [
-      { key: "primary", label: "Nút chính (Primary CTA)", value: "touch_app" },
-      { key: "secondary", label: "Nút phụ (Secondary)", value: "open_in_new" },
-      { key: "card", label: "Toàn bộ thẻ (Card)", value: "crop_landscape" },
-    ];
-  }
-  if (it.kind === "dialog" || it.kind === "shadcnDialog") {
-    return [
-      { key: "confirm", label: "Nút Xác nhận (Confirm)", value: "check_circle" },
-      { key: "cancel", label: "Nút Hủy / Đóng (Cancel)", value: "cancel" },
-    ];
-  }
-  if (it.kind === "snackbar" || it.kind === "shadcnAlert") {
-    return [
-      { key: "action", label: "Nút Hành động (Action)", value: "bolt" },
-      { key: "dismiss", label: "Nút Đóng (Dismiss)", value: "close" },
+      { key: "main", label: it.label?.trim() ? it.label : "Nút chính", value: it.icon || "smart_button" },
+      { key: "arrow", label: "Mũi tên", value: "arrow_drop_down" },
     ];
   }
   return [];
