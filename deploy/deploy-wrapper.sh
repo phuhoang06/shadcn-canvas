@@ -18,8 +18,8 @@ fi
 # Thẩm định nghiêm ngặt: Chỉ chấp nhận lệnh "deploy <40-hex-characters>"
 if [[ "${ORIGINAL_CMD}" =~ ^deploy[[:space:]]+([0-9a-f]{40})$ ]]; then
   TARGET_SHA="${BASH_REMATCH[1]}"
-  echo "[SECURITY] Authorized deploy command accepted for SHA: ${TARGET_SHA}"
-  exec /home/deploy-canvas/projects/canvas/deploy.sh "${TARGET_SHA}"
+  DEPLOY_SCRIPT="${DEPLOY_SCRIPT:-${HOME}/projects/canvas/deploy.sh}"
+  exec "${DEPLOY_SCRIPT}" "${TARGET_SHA}"
 else
   echo "[SECURITY REJECTED] Command not allowed: ${ORIGINAL_CMD}" >&2
   exit 1

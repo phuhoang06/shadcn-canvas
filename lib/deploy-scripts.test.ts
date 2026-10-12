@@ -20,7 +20,7 @@ describe("Deployment Scripts Verification", () => {
       expect(content).toContain("[SECURITY REJECTED]");
 
       // Target execution path
-      expect(content).toContain("/home/deploy-canvas/projects/canvas/deploy.sh");
+      expect(content).toContain('projects/canvas/deploy.sh');
     });
   });
 
