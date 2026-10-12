@@ -30,12 +30,13 @@ describe("GitLab CI/CD Pipeline Configuration (.gitlab-ci.yml)", () => {
     expect(content).toContain("--destination");
   });
 
-  it("configures concurrency resource_group and calls deploy wrapper in deploy stage", () => {
+  it("configures concurrency resource_group and executes deploy.sh on phuhoangserver runner", () => {
     const content = fs.readFileSync(ciPath, "utf-8");
     expect(content).toContain("resource_group: production-canvas");
-    expect(content).toContain('deploy ${CI_COMMIT_SHA}');
-    expect(content).toContain("SSH_KNOWN_HOSTS");
-    expect(content).toContain("SSH_PRIVATE_KEY");
+    expect(content).toContain("tags:");
+    expect(content).toContain("- phuhoangserver");
+    expect(content).toContain('deploy.sh "${CI_COMMIT_SHA}"');
+    expect(content).toContain("CI_REGISTRY_PASSWORD");
   });
 
   it("has valid basic YAML structure without tab indentations", () => {

@@ -1,6 +1,6 @@
 services:
   shadcn-canvas:
-    image: ${REGISTRY_IMAGE:-git.musongoku.id.vn:5050/personal-projects/canvas}:${IMAGE_TAG}
+    image: ${REGISTRY_IMAGE:-registry.gitlab.com/phuhoang-group/shadcn-canvas}:${IMAGE_TAG}
     container_name: shadcn-canvas
     restart: unless-stopped
     ports:
