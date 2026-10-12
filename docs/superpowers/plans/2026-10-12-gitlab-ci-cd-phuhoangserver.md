@@ -1,15 +1,16 @@
 # GitLab CI/CD Triển Khai `canvas.musongoku.id.vn` Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Xây dựng trọn bộ cấu hình CI/CD trên GitLab Self-Managed (`git.musongoku.id.vn`), tự động kiểm thử (Test + Next.js Build Export), đóng gói Docker Nginx Alpine với tag Full Commit SHA đẩy lên GitLab Container Registry, và tự động triển khai an toàn lên Ubuntu Server `phuhoangserver` (`canvas.musongoku.id.vn`) kèm cơ chế khóa đồng thời, kiểm tra sức khỏe và rollback 2 lớp.
 
 **Architecture:**
 - Frontend tĩnh Next.js 16 (`output: "export"`) được đóng gói qua multi-stage Dockerfile sang Nginx Alpine nhẹ (<10MB RAM).
-- Pipeline GitLab CI gồm 3 stages: `test` (chạy `npm ci`, `typecheck`, `vitest`, `npm run build`), `build` (đóng gói và push image lên Container Registry với tag 40 ký tự hex bất biến `$CI_COMMIT_SHA`), `deploy` (gọi SSH wrapper cố định, khóa tệp qua `flock`, cập nhật nguyên tử `.env`, `docker compose up -d`, kiểm tra HTTP 200 tại `127.0.0.1:3000/`, rollback tự động nếu thất bại).
-- An ninh: Không mount docker socket vào job CI; SSH key chỉ được chạy wrapper kiểm duyệt cú pháp regex `^deploy [0-9a-f]{40}$`, cố định `known_hosts`.
+- Pipeline GitLab CI gồm 3 stages: `test` (chạy `npm ci`, `typecheck`, `vitest`, `npm run build`), `build` (chọn builder cụ thể, đóng gói và push image lên Container Registry với tag 40 ký tự hex bất biến `$CI_COMMIT_SHA`), `deploy` (gọi SSH wrapper cố định, khóa tệp qua `flock`, cập nhật nguyên tử `.env`, `docker compose up -d` có bẫy lỗi để rollback nếu up thất bại, kiểm tra HTTP 200 tại `127.0.0.1:3000/`, xử lý riêng kịch bản first-run vs update-rollback).
+- An ninh: Không mount docker socket host vào job CI; SSH key chỉ được chạy wrapper kiểm duyệt cú pháp regex `^deploy [0-9a-f]{40}$`, cố định `known_hosts`.
+- Kiểm định: Cú pháp và logic của `.gitlab-ci.yml` phải được kiểm tra hợp lệ bằng GitLab CI Lint.
 
-**Tech Stack:** Next.js 16, TypeScript, Vitest, Docker, Docker Compose, Nginx Alpine, GitLab CI/CD, Bash (flock, curl).
+**Tech Stack:** Next.js 16, TypeScript, Vitest, Docker, Docker Compose, Nginx Alpine, GitLab CI/CD, Bash (flock, curl), GitLab CI Lint.
 
 ## Global Constraints
 - Target host: Ubuntu Server `phuhoangserver` (`192.168.0.100`)
@@ -22,60 +23,62 @@
 
 ---
 
-### Task 1: Chuẩn Bị & Xác Minh Hạ Tầng Server (Checklist & Hướng Dẫn)
+### Task 1: Xác Minh Hạ Tầng Server & Runner Thực Tế (Preflight Server)
 
 **Files:**
 - Create: `deploy/SERVER_PREFLIGHT.md`
 
 **Interfaces:**
-- Consumes: Môi trường Ubuntu Server, GitLab Runner, Container Registry, Docker daemon
-- Produces: `deploy/SERVER_PREFLIGHT.md` chứa checklist xác minh thông số mạng, port, dung lượng và executor
+- Consumes: Môi trường Ubuntu Server `phuhoangserver` (`192.168.0.100`), GitLab Runner, Registry, Cloudflare Tunnel
+- Produces: `deploy/SERVER_PREFLIGHT.md` chứa tài liệu checklist & tập lệnh kiểm tra hiện trạng không làm thay đổi cấu hình máy chủ
 
-- [ ] **Step 1: Viết tài liệu kiểm tra tiền trạm server (Server Preflight Checklist)**
+- [ ] **Step 1: Soạn thảo checklist và script kiểm tra tiền trạm**
 
-Tạo file `deploy/SERVER_PREFLIGHT.md` hướng dẫn kiểm tra:
-1. Trạng thái GitLab Registry (`curl -k https://git.musongoku.id.vn:5050/v2/`).
-2. Trạng thái GitLab Runner (`gitlab-runner status` và cấu hình trong `/etc/gitlab-runner/config.toml` - xác minh Docker executor).
-3. Trạng thái Docker daemon & nhóm `docker` trên `phuhoangserver`.
-4. Cổng `127.0.0.1:3000` (đảm bảo không xung đột dịch vụ khác).
-5. Trạng thái Cloudflare Tunnel (`cloudflared` ingress rule trỏ về `http://127.0.0.1:3000`).
+Tạo `deploy/SERVER_PREFLIGHT.md` gồm các lệnh kiểm tra:
+1. **GitLab Container Registry**: Kiểm tra phản hồi TLS tại `https://git.musongoku.id.vn:5050/v2/`.
+2. **GitLab Runner**: Kiểm tra executor trong `/etc/gitlab-runner/config.toml` (Docker executor, cấu hình TLS, mạng nội bộ kết nối tới Registry và Host).
+3. **Cổng mạng & Dịch vụ**: Xác minh cổng `127.0.0.1:3000` đang mở/chưa bị chiếm dụng (`ss -tulpn | grep 3000`).
+4. **Cloudflare Tunnel**: Xác minh ingress rule cho `canvas.musongoku.id.vn` trỏ về `http://127.0.0.1:3000`.
+5. **Docker Daemon**: Kiểm tra phiên bản Docker, compose plugin v2 (`docker compose version`).
 
-- [ ] **Step 2: Kiểm tra nội dung tệp**
+- [ ] **Step 2: Rà soát tài liệu để loại bỏ placeholder**
 
-Đảm bảo tài liệu không có placeholder, cung cấp rõ ràng các lệnh shell cần chạy trên Ubuntu Server.
+Đảm bảo mọi lệnh shell đều có cú pháp chuẩn và chú thích rõ ràng mục tiêu kiểm tra.
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add deploy/SERVER_PREFLIGHT.md
-git commit -m "docs(deploy): add server preflight checklist and verification steps"
+git commit -m "docs(deploy): add preflight verification guide for server and runner"
 ```
 
 ---
 
-### Task 2: Cập Nhật Dockerfile & Docker Compose Chuẩn Hóa Production
+### Task 2: Chuẩn Hóa Dockerfile & Docker Compose Cho Production
 
 **Files:**
 - Modify: `Dockerfile`
 - Modify: `deploy/compose.yaml`
+- Test: `lib/deploy.test.ts`
 
 **Interfaces:**
 - Consumes: Next.js static export `out/`, `deploy/nginx.conf`
-- Produces: Docker image Nginx phục vụ `out/`, Compose nhận biến `${IMAGE_TAG}` và `${REGISTRY_IMAGE}`
+- Produces: Dockerfile tối ưu multi-stage, `deploy/compose.yaml` hỗ trợ `${IMAGE_TAG}` và `${REGISTRY_IMAGE}`
 
 - [ ] **Step 1: Viết test kiểm tra cấu trúc Docker Compose & Dockerfile**
 
-Thêm test unit trong `lib/robustness.test.ts` (hoặc test file riêng `lib/deploy.test.ts`) kiểm tra:
-1. `Dockerfile` có multi-stage build (`builder` và `runner`), EXPOSE 80, và healthcheck `http://localhost/`.
-2. `deploy/compose.yaml` sử dụng biến `IMAGE_TAG` và map đúng `127.0.0.1:3000:80`.
+Tạo `lib/deploy.test.ts` kiểm tra:
+1. `Dockerfile` có builder (`node:24-alpine`) chạy `npm run build` và runner (`nginx:alpine`) sao chép `out/` sang `/usr/share/nginx/html`.
+2. `deploy/compose.yaml` nhận biến `${IMAGE_TAG}` và map cổng `127.0.0.1:3000:80`.
+3. Kiểm tra container healthcheck định kỳ 10s.
 
-- [ ] **Step 2: Chạy test để xác minh thất bại hoặc cần cập nhật**
+- [ ] **Step 2: Chạy test để xác minh test thất bại**
 
 Run: `npx vitest run lib/deploy.test.ts`
+Expected: FAIL
 
 - [ ] **Step 3: Cập nhật `deploy/compose.yaml`**
 
-Đảm bảo `compose.yaml` nhận tham số biến môi trường:
 ```yaml
 services:
   shadcn-canvas:
@@ -96,7 +99,7 @@ services:
         max-file: "3"
 ```
 
-- [ ] **Step 4: Chạy test kiểm tra lại**
+- [ ] **Step 4: Chạy test xác minh**
 
 Run: `npx vitest run lib/deploy.test.ts`
 Expected: PASS
@@ -105,12 +108,12 @@ Expected: PASS
 
 ```bash
 git add Dockerfile deploy/compose.yaml lib/deploy.test.ts
-git commit -m "feat(deploy): parametrize image tag in compose.yaml and add validation test"
+git commit -m "feat(deploy): update compose.yaml with dynamic IMAGE_TAG and add validation test"
 ```
 
 ---
 
-### Task 3: Xây Dựng SSH Wrapper & Script Deploy Server Kèm Auto-Rollback
+### Task 3: Xây Dựng SSH Wrapper & Script Deploy Với Bẫy Lỗi & Rollback Đầy Đủ
 
 **Files:**
 - Create: `deploy/deploy-wrapper.sh`
@@ -118,19 +121,21 @@ git commit -m "feat(deploy): parametrize image tag in compose.yaml and add valid
 - Test: `lib/deploy-scripts.test.ts`
 
 **Interfaces:**
-- Consumes: Tham số `$1` là commit SHA 40 ký tự
-- Produces: Script bash an toàn với atomic `.env` write, flock, healthcheck loop, 2-tier rollback
+- Consumes: Tham số `$1` là full commit SHA 40 ký tự hex
+- Produces: Script bash xử lý an toàn: bắt lỗi cả khi `docker compose up -d` sập, xử lý riêng first-run, atomic env write, flock, healthcheck loop, 2-tier rollback
 
-- [ ] **Step 1: Viết test kiểm tra logic regex và cú pháp của wrapper và deploy script**
+- [ ] **Step 1: Viết test kiểm tra cú pháp và logic script**
 
-Tạo `lib/deploy-scripts.test.ts` đọc file script và kiểm tra:
-1. `deploy-wrapper.sh` có kiểm tra regex `^deploy [0-9a-f]{40}$` và từ chối các lệnh khác.
-2. `deploy.sh` có sử dụng `flock`, ghi file tạm `.env.tmp` trước khi đổi tên sang `.env`, và có logic rollback về `CURRENT_TAG`.
+Trong `lib/deploy-scripts.test.ts`, viết các test case:
+1. `deploy-wrapper.sh` từ chối các chuỗi không phải `deploy <40-hex-chars>`.
+2. `deploy.sh` bắt lỗi `docker compose up -d` (không bị `set -e` thoát đột ngột làm mất nhánh rollback).
+3. `deploy.sh` nhận biết kịch bản First-run (không có `CURRENT_TAG` hợp lệ thì dừng an toàn thay vì rollback về tag ảo `initial`).
+4. `deploy.sh` dùng `flock` và atomic file write (`.env.tmp` → `.env`).
 
 - [ ] **Step 2: Chạy test để xác minh test thất bại**
 
 Run: `npx vitest run lib/deploy-scripts.test.ts`
-Expected: FAIL (files chưa tồn tại)
+Expected: FAIL
 
 - [ ] **Step 3: Viết `deploy/deploy-wrapper.sh`**
 
@@ -138,17 +143,17 @@ Expected: FAIL (files chưa tồn tại)
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Wrapper an toàn cho SSH authorized_keys
-# Chỉ chấp nhận lệnh: deploy <40-char-hex-commit-sha>
+# Wrapper bảo mật gắn trong authorized_keys:
+# command="/home/deploy-canvas/bin/deploy-wrapper.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-ed25519 ...
 
 ORIGINAL_CMD="${SSH_ORIGINAL_COMMAND:-}"
 
-if [[ -z "$ORIGINAL_CMD" ]]; then
+if [[ -z "${ORIGINAL_CMD}" ]]; then
   echo "[SECURITY ERROR] No command specified." >&2
   exit 1
 fi
 
-if [[ "$ORIGINAL_CMD" =~ ^deploy[[:space:]]+([0-9a-f]{40})$ ]]; then
+if [[ "${ORIGINAL_CMD}" =~ ^deploy[[:space:]]+([0-9a-f]{40})$ ]]; then
   TARGET_SHA="${BASH_REMATCH[1]}"
   echo "[SECURITY] Authorized deploy command accepted for SHA: ${TARGET_SHA}"
   exec /home/deploy-canvas/projects/canvas/deploy.sh "${TARGET_SHA}"
@@ -164,7 +169,6 @@ fi
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Script deploy với khóa flock, atomic write, healthcheck và rollback 2 lớp
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${PROJECT_DIR}"
 
@@ -181,52 +185,87 @@ if [[ -z "${NEW_TAG}" ]]; then
   exit 1
 fi
 
-CURRENT_TAG="initial"
+# Đọc CURRENT_TAG từ .env hiện tại (nếu có)
+CURRENT_TAG=""
 if [[ -f .env ]]; then
-  CURRENT_TAG=$(grep -E '^IMAGE_TAG=' .env | cut -d'=' -f2 || echo "initial")
+  CURRENT_TAG=$(grep -E '^IMAGE_TAG=' .env | cut -d'=' -f2- || true)
 fi
-echo "[INFO] Current running tag: ${CURRENT_TAG}"
+
+IS_FIRST_RUN=false
+if [[ -z "${CURRENT_TAG}" ]]; then
+  echo "[INFO] No valid existing tag found in .env. Treating this as a FIRST-TIME deployment."
+  IS_FIRST_RUN=true
+else
+  echo "[INFO] Current running tag: ${CURRENT_TAG}"
+fi
 echo "[INFO] Deploying new tag: ${NEW_TAG}"
 
 # Ghi nguyên tử tệp .env
 echo "IMAGE_TAG=${NEW_TAG}" > .env.tmp
 mv .env.tmp .env
 
-# Pull và khởi động container mới
+# Pull image mới
 echo "[INFO] Pulling new image from registry..."
 if ! docker compose pull; then
-  echo "[WARN] Docker compose pull failed! Reverting .env..." >&2
-  echo "IMAGE_TAG=${CURRENT_TAG}" > .env.tmp && mv .env.tmp .env
+  echo "[ERROR] docker compose pull failed for ${NEW_TAG}!" >&2
+  if [[ "${IS_FIRST_RUN}" == "true" ]]; then
+    rm -f .env
+    echo "[INFO] Cleaned up .env after failed first-time pull." >&2
+  else
+    echo "IMAGE_TAG=${CURRENT_TAG}" > .env.tmp && mv .env.tmp .env
+    echo "[INFO] Reverted .env back to ${CURRENT_TAG}." >&2
+  fi
   exit 1
 fi
 
-echo "[INFO] Recreating container..."
-docker compose up -d --remove-orphans
+# Chạy container mới (Bắt lỗi chủ động, không để set -e thoát script làm mất rollback)
+echo "[INFO] Starting new container..."
+UP_SUCCESS=true
+if ! docker compose up -d --remove-orphans; then
+  echo "[WARN] docker compose up -d failed for new tag ${NEW_TAG}!" >&2
+  UP_SUCCESS=false
+fi
 
-# Healthcheck loop (10 lần x 3s = 30s)
-echo "[INFO] Running healthcheck on http://127.0.0.1:3000/ ..."
+# Kiểm tra sức khỏe nếu up thành công
 HEALTHY=false
-for i in $(seq 1 10); do
-  sleep 3
-  if curl -fsS -o /dev/null http://127.0.0.1:3000/; then
-    echo "[INFO] Healthcheck passed on attempt ${i}!"
-    HEALTHY=true
-    break
-  fi
-  echo "[INFO] Waiting for service to respond (attempt ${i}/10)..."
-done
+if [[ "${UP_SUCCESS}" == "true" ]]; then
+  echo "[INFO] Running healthcheck on http://127.0.0.1:3000/ ..."
+  for i in $(seq 1 10); do
+    sleep 3
+    if curl -fsS -o /dev/null http://127.0.0.1:3000/; then
+      echo "[INFO] Healthcheck passed on attempt ${i}!"
+      HEALTHY=true
+      break
+    fi
+    echo "[INFO] Waiting for service to respond (attempt ${i}/10)..."
+  done
+fi
 
 if [[ "${HEALTHY}" == "true" ]]; then
   echo "[SUCCESS] Deployment of ${NEW_TAG} completed successfully."
   exit 0
 fi
 
-# ROLLBACK BẮT BUỘC KHI BẢN MỚI THẤT BẠI
-echo "[WARN] New version ${NEW_TAG} failed healthcheck! Starting rollback to ${CURRENT_TAG}..." >&2
-echo "IMAGE_TAG=${CURRENT_TAG}" > .env.tmp && mv .env.tmp .env
-docker compose up -d --remove-orphans
+# XỬ LÝ KHI BẢN MỚI THẤT BẠI
+echo "[WARN] New version ${NEW_TAG} failed verification!" >&2
 
-# Kiểm tra lại bản cũ
+if [[ "${IS_FIRST_RUN}" == "true" ]]; then
+  echo "[ERROR] First-time deployment failed. No previous version exists to rollback to." >&2
+  docker compose down --remove-orphans || true
+  rm -f .env
+  exit 1
+fi
+
+# TIẾN HÀNH ROLLBACK VỀ BẢN CŨ HỢP LỆ
+echo "[INFO] Rolling back to previous stable tag: ${CURRENT_TAG}..."
+echo "IMAGE_TAG=${CURRENT_TAG}" > .env.tmp && mv .env.tmp .env
+
+if ! docker compose up -d --remove-orphans; then
+  echo "[CRITICAL] Failed to restart previous version ${CURRENT_TAG}!" >&2
+  exit 2
+fi
+
+# Kiểm tra sức khỏe bản cũ
 ROLLBACK_HEALTHY=false
 for i in $(seq 1 5); do
   sleep 3
@@ -238,7 +277,7 @@ for i in $(seq 1 5); do
 done
 
 if [[ "${ROLLBACK_HEALTHY}" == "true" ]]; then
-  echo "[WARN] Rollback to ${CURRENT_TAG} succeeded. Marking pipeline as FAILED." >&2
+  echo "[WARN] Rollback to ${CURRENT_TAG} succeeded. Marking deployment as FAILED for pipeline alert." >&2
   exit 1
 else
   echo "[CRITICAL] Rollback to ${CURRENT_TAG} ALSO FAILED! Both versions are down!" >&2
@@ -255,103 +294,172 @@ Expected: PASS
 
 ```bash
 git add deploy/deploy-wrapper.sh deploy/deploy.sh lib/deploy-scripts.test.ts
-git commit -m "feat(deploy): implement secure SSH wrapper and atomic rollback deploy script"
+git commit -m "feat(deploy): implement robust deploy script with up trap and first-run handling"
 ```
 
 ---
 
-### Task 4: Xây Dựng Pipeline `.gitlab-ci.yml` (3 Stages)
+### Task 4: Xây Dựng `.gitlab-ci.yml` & Kiểm Tra Bằng GitLab CI Lint
 
 **Files:**
 - Create: `.gitlab-ci.yml`
+- Test: `lib/deploy-ci.test.ts`
 
 **Interfaces:**
-- Consumes: GitLab CI Variables (`SSH_PRIVATE_KEY`, `SSH_KNOWN_HOSTS`, `DEPLOY_HOST`, `CI_REGISTRY`)
-- Produces: `.gitlab-ci.yml` hoàn chỉnh với các stages `test`, `build`, `deploy`
+- Consumes: GitLab CI Variables, GitLab CI Lint API
+- Produces: `.gitlab-ci.yml` chuẩn hóa 3 stages `test`, `build`, `deploy` đã qua kiểm định CI Lint
 
-- [ ] **Step 1: Viết `.gitlab-ci.yml`**
+- [ ] **Step 1: Viết cấu hình `.gitlab-ci.yml`**
 
-Tạo `.gitlab-ci.yml` chứa:
-1. `stages: [test, build, deploy]`.
-2. `test`:
-   - Image: `node:24-alpine`.
-   - Script:
-     ```bash
-     npm ci
-     npm run typecheck
-     npx vitest run
-     npm run build
-     ```
-3. `build`:
-   - Image builder rootless/an toàn tương thích GitLab Runner.
-   - Script: đăng nhập `$CI_REGISTRY`, build và push `$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA`.
-4. `deploy`:
-   - Image: `alpine:latest`.
-   - `resource_group: production-canvas`.
-   - Rules: `if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH`.
-   - Before script: thiết lập SSH client với `SSH_PRIVATE_KEY` và `SSH_KNOWN_HOSTS`.
-   - Script: `ssh deploy-canvas@$DEPLOY_HOST "deploy $CI_COMMIT_SHA"`.
+Xác định builder cụ thể: Dùng **Kaniko executor** (`gcr.io/kaniko-project/executor:v1.23.2-debug`) - công cụ chuẩn của GitLab cho môi trường containerized Docker executor không cần daemon/privileged:
 
-- [ ] **Step 2: Thêm unit test kiểm tra cú pháp `.gitlab-ci.yml`**
+```yaml
+stages:
+  - test
+  - build
+  - deploy
 
-Thêm test trong `lib/deploy-scripts.test.ts` kiểm tra `.gitlab-ci.yml` có chứa:
-- `npm run build` trong stage `test`
-- `$CI_COMMIT_SHA` trong stage `build`
-- `resource_group: production-canvas` trong stage `deploy`
-- `deploy $CI_COMMIT_SHA` trong command deploy.
+variables:
+  DOCKER_IMAGE_NAME: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA"
+
+# ====================================================================
+# STAGE 1: TEST (Node 24, Typecheck, Unit Test, Next.js Build Export)
+# ====================================================================
+test:
+  stage: test
+  image: node:24-alpine
+  cache:
+    key:
+      files:
+        - package-lock.json
+    paths:
+      - .npm/
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+  script:
+    - npm run typecheck
+    - npx vitest run
+    - npm run build
+
+# ====================================================================
+# STAGE 2: BUILD & PUSH (Kaniko Rootless Builder)
+# ====================================================================
+build:
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.23.2-debug
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - mkdir -p /kaniko/.docker
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+  script:
+    - /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
+      --destination "${DOCKER_IMAGE_NAME}"
+      --cache=true
+
+# ====================================================================
+# STAGE 3: DEPLOY (SSH Wrapper & Rollback Engine)
+# ====================================================================
+deploy:
+  stage: deploy
+  image: alpine:latest
+  resource_group: production-canvas
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - chmod 600 "${SSH_PRIVATE_KEY}"
+    - ssh-add "${SSH_PRIVATE_KEY}"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - cp "${SSH_KNOWN_HOSTS}" ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - ssh deploy-canvas@"${DEPLOY_HOST}" "deploy ${CI_COMMIT_SHA}"
+```
+
+- [ ] **Step 2: Viết test kiểm tra cấu trúc `.gitlab-ci.yml` và kiểm tra CI Lint**
+
+Tạo `lib/deploy-ci.test.ts` kiểm tra:
+1. File `.gitlab-ci.yml` tồn tại và định dạng YAML hợp lệ.
+2. Có đủ 3 stages `test`, `build`, `deploy`.
+3. Stage `test` chứa `npm run build`.
+4. Stage `build` sử dụng biến tag `$CI_COMMIT_SHA`.
+5. Stage `deploy` có `resource_group: production-canvas` và gọi `deploy ${CI_COMMIT_SHA}`.
+6. Hướng dẫn tích hợp kiểm tra CI Lint qua GitLab API (`POST /api/v4/ci/lint`).
 
 - [ ] **Step 3: Chạy test xác minh**
 
-Run: `npx vitest run lib/deploy-scripts.test.ts`
+Run: `npx vitest run lib/deploy-ci.test.ts`
 Expected: PASS
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add .gitlab-ci.yml lib/deploy-scripts.test.ts
-git commit -m "ci: add full .gitlab-ci.yml pipeline configuration"
+git add .gitlab-ci.yml lib/deploy-ci.test.ts
+git commit -m "ci: create .gitlab-ci.yml with Kaniko builder and deploy stage"
 ```
 
 ---
 
-### Task 5: Hướng Dẫn Thiết Lập Host & Kịch Bản Nghiệm Thu (Acceptance Testing Guide)
+### Task 5: Soạn Thảo Hướng Dẫn Cấu Hình Server & Kịch Bản Nghiệm Thu (Acceptance Guide)
 
 **Files:**
 - Create: `deploy/SETUP_GUIDE.md`
 
 **Interfaces:**
-- Consumes: Hướng dẫn cấu hình user `deploy-canvas`, GitLab CI/CD Variables, kịch bản test
-- Produces: `deploy/SETUP_GUIDE.md`
+- Consumes: Cấu hình user `deploy-canvas`, GitLab CI/CD Variables, kịch bản nghiệm thu thực tế
+- Produces: `deploy/SETUP_GUIDE.md` hoàn chỉnh
 
-- [ ] **Step 1: Soạn thảo `deploy/SETUP_GUIDE.md`**
+- [ ] **Step 1: Viết tài liệu `deploy/SETUP_GUIDE.md`**
 
-Nội dung chi tiết:
-1. Lệnh tạo user `deploy-canvas`, phân quyền thư mục `/home/deploy-canvas/projects/canvas`.
-2. Lệnh tạo SSH key pair và gắn wrapper vào `authorized_keys`.
-3. Bảng biến GitLab CI/CD Variables cần thêm trên GitLab UI (`Settings` → `CI/CD` → `Variables`).
-4. Kịch bản nghiệm thu 1: Happy path push code lên main.
-5. Kịch bản nghiệm thu 2: Test bảo mật SSH (thử gọi `ssh ... "ls -la"` xem bị từ chối).
-6. Kịch bản nghiệm thu 3: Test rollback có chủ đích (gọi deploy SHA của một image giả lập lỗi).
+Bao gồm:
+1. **Thiết lập User & Phân quyền trên Host**:
+   ```bash
+   sudo useradd -m -s /bin/bash deploy-canvas
+   sudo usermod -aG docker deploy-canvas
+   sudo mkdir -p /home/deploy-canvas/bin /home/deploy-canvas/projects/canvas
+   sudo chown -R deploy-canvas:deploy-canvas /home/deploy-canvas
+   ```
+2. **Cài đặt SSH Wrapper & Khóa Lệnh**:
+   - Copy `deploy/deploy-wrapper.sh` vào `/home/deploy-canvas/bin/deploy-wrapper.sh`.
+   - Copy `deploy/deploy.sh` và `deploy/compose.yaml` vào `/home/deploy-canvas/projects/canvas/`.
+   - Cấu hình `authorized_keys` với tiền tố `command="/home/deploy-canvas/bin/deploy-wrapper.sh",no-pty...`.
+3. **Cấu hình GitLab CI/CD Variables**:
+   - `SSH_PRIVATE_KEY` (File, Protected, Masked)
+   - `SSH_KNOWN_HOSTS` (File, Protected)
+   - `DEPLOY_HOST` (`192.168.0.100` hoặc IP host mà runner truy cập được)
+4. **Kịch bản nghiệm thu (Acceptance Tests)**:
+   - *Test 1 (Bảo mật SSH)*: Chạy lệnh `ssh deploy-canvas@host "ls -la"` → Kỳ vọng: Bị từ chối `[SECURITY REJECTED]`.
+   - *Test 2 (Deploy bình thường)*: Gọi `deploy <sha-hop-le>` → Kỳ vọng: HTTP 200 tại `127.0.0.1:3000`.
+   - *Test 3 (Rollback có chủ đích)*: Triển khai một image giả lập lỗi cổng/healthcheck → Kỳ vọng: Script tự động khôi phục bản cũ, website không gián đoạn, pipeline báo đỏ.
 
-- [ ] **Step 2: Kiểm tra liên kết và định dạng tài liệu**
-
-Đảm bảo tài liệu rõ ràng, dễ làm theo từng bước trên terminal Ubuntu.
+- [ ] **Step 2: Rà soát tài liệu**
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add deploy/SETUP_GUIDE.md
-git commit -m "docs(deploy): add host setup guide and acceptance testing scenarios"
+git commit -m "docs(deploy): add host setup guide, SSH hardening and acceptance testing procedures"
 ```
 
 ---
 
-### Task 6: Kiểm Tra Tổng Thể & Xác Nhận Toàn Bộ Test Suite
+### Task 6: Kiểm Tra Toàn Diện Hệ Thống (Verification Before Completion)
 
 **Files:**
-- Verification: toàn bộ test suite
+- All project files
 
-- [ ] **Step 1: Chạy `npm run typecheck`**
+**Interfaces:**
+- Consumes: Toàn bộ mã nguồn và test suite
+- Produces: Báo cáo xác minh 100% không lỗi
+
+- [ ] **Step 1: Kiểm tra typecheck**
 
 Run: `npm run typecheck`
 Expected: 0 errors
@@ -361,7 +469,7 @@ Expected: 0 errors
 Run: `npx vitest run`
 Expected: 100% tests pass
 
-- [ ] **Step 3: Chạy production build kiểm tra Next.js export**
+- [ ] **Step 3: Kiểm tra production build export**
 
 Run: `npm run build`
-Expected: Export hoàn tất vào thư mục `out/` không lỗi
+Expected: Thành công tạo thư mục `out/`
