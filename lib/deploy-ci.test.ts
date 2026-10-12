@@ -39,6 +39,11 @@ describe("GitLab CI/CD Pipeline Configuration (.gitlab-ci.yml)", () => {
     expect(content).toContain("CI_REGISTRY_PASSWORD");
   });
 
+  it("restricts build and deploy stages to default branch and dev branch", () => {
+    const content = fs.readFileSync(ciPath, "utf-8");
+    expect(content).toContain('$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == "dev"');
+  });
+
   it("has valid basic YAML structure without tab indentations", () => {
     const content = fs.readFileSync(ciPath, "utf-8");
     // YAML forbids tabs for indentation
